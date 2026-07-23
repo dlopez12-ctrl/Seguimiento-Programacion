@@ -1,0 +1,1716 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rol de Vuelo — Panel de Confección</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --bg:#f4f5f7;--bg2:#eceef2;--bg3:#e4e6ec;--card:#fff;
+  --border:rgba(0,0,0,0.07);--border2:rgba(0,0,0,0.13);
+  --text:#1a1d27;--text2:#6b7080;--text3:#aab0c0;
+  --blue:#2f7de0;--blue-bg:rgba(47,125,224,0.1);--blue-border:rgba(47,125,224,0.25);
+  --green:#18a76b;--green-bg:rgba(24,167,107,0.1);--green-border:rgba(24,167,107,0.3);
+  --amber:#d97706;--amber-bg:rgba(217,119,6,0.1);--amber-border:rgba(217,119,6,0.3);
+  --red:#dc3545;--red-bg:rgba(220,53,69,0.09);--red-border:rgba(220,53,69,0.25);
+  --purple:#7c3aed;--purple-bg:rgba(124,58,237,0.1);
+  --teal:#0d9488;--na-color:#6b7080;--na-bg:rgba(107,112,128,0.1);
+  --radius:10px;--radius-lg:14px;
+  --shadow:0 1px 3px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md:0 4px 16px rgba(0,0,0,0.1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-size:14px}
+button{cursor:pointer;font-family:inherit}
+select,input,textarea{font-family:inherit}
+
+/* LOGIN */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;background:linear-gradient(135deg,#e8edf5,#f4f5f7 50%,#eaecf2)}
+.login-box{background:var(--card);border:1px solid var(--border2);border-radius:20px;padding:2.5rem;width:680px;max-width:95vw;box-shadow:var(--shadow-md)}
+.login-logo{text-align:center;margin-bottom:2rem}
+.login-logo .plane{font-size:2.5rem;display:block;margin-bottom:.5rem}
+.login-logo h1{font-size:1.3rem;font-weight:700;letter-spacing:-.02em}
+.login-logo p{font-size:12px;color:var(--text2);margin-top:4px}
+.login-label{font-size:11px;color:var(--text2);margin-bottom:8px;letter-spacing:.05em;text-transform:uppercase;font-weight:600}
+.analyst-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:1.5rem}
+.analyst-btn{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius);color:var(--text);transition:all .15s;text-align:left}
+.analyst-btn:hover{border-color:var(--border2);background:var(--bg2)}
+.analyst-btn.selected{border-color:var(--blue);background:var(--blue-bg)}
+.analyst-btn .av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.analyst-btn .aname{font-size:12px;font-weight:600;line-height:1.3}
+.analyst-btn .arole{font-size:10px;color:var(--text2)}
+.btn-enter{width:100%;padding:12px;border-radius:var(--radius);border:none;background:var(--blue);color:#fff;font-size:14px;font-weight:600;transition:opacity .15s;opacity:.35;pointer-events:none}
+.btn-enter.ready{opacity:1;pointer-events:all}
+.btn-enter.ready:hover{opacity:.88}
+
+/* APP */
+#app{display:none;flex-direction:column;min-height:100vh}
+.topbar{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);border-bottom:1px solid var(--border2);display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;height:54px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.topbar-left{display:flex;align-items:center;gap:14px}
+.topbar-logo{font-size:14px;font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;gap:7px}
+.topbar-logo span{color:var(--blue)}
+.nav-tabs{display:flex;gap:2px}
+.nav-tab{padding:6px 14px;border-radius:8px;border:none;background:transparent;color:var(--text2);font-size:13px;transition:all .12s;font-weight:500}
+.nav-tab:hover{color:var(--text);background:var(--bg2)}
+.nav-tab.active{color:var(--blue);background:var(--blue-bg)}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.user-chip{display:flex;align-items:center;gap:8px;padding:5px 12px;background:var(--bg);border:1px solid var(--border2);border-radius:99px}
+.user-chip .av{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700}
+.user-chip .uname{font-size:12px;font-weight:500}
+.btn-logout{padding:5px 10px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:12px}
+.btn-logout:hover{color:var(--text)}
+.content{flex:1;padding:1.5rem;max-width:1200px;margin:0 auto;width:100%}
+.section{display:none}
+.section.active{display:block}
+.section-title{font-size:18px;font-weight:700;letter-spacing:-.02em;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between}
+.section-title span{color:var(--blue)}
+
+/* OVERVIEW */
+.deadline-bar{display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 18px;margin-bottom:1.25rem;box-shadow:var(--shadow)}
+.deadline-bar .dl-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;font-weight:600;margin-bottom:3px}
+.deadline-bar .dl-date{font-size:14px;font-weight:700}
+.deadline-chip{font-size:11px;font-weight:700;padding:4px 12px;border-radius:99px}
+.dl-ok{background:var(--green-bg);color:var(--green)}
+.dl-warn{background:var(--amber-bg);color:var(--amber)}
+.dl-late{background:var(--red-bg);color:var(--red)}
+.dl-none{background:var(--bg2);color:var(--text2)}
+.metrics-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:1.25rem}
+.metric-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;box-shadow:var(--shadow)}
+.metric-card .ml{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;font-weight:600}
+.metric-card .mv{font-size:26px;font-weight:800;line-height:1}
+.metric-card .ms{font-size:11px;color:var(--text2);margin-top:4px}
+.metric-card.clickable{cursor:pointer;transition:box-shadow .15s,border-color .15s}
+.metric-card.clickable:hover{box-shadow:var(--shadow-md);border-color:var(--amber-border)}
+.big-progress{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:1.25rem;box-shadow:var(--shadow)}
+.big-progress-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.big-progress-header h2{font-size:14px;font-weight:600}
+.big-progress-header .pct{font-size:28px;font-weight:800}
+.prog-track{height:10px;background:var(--bg2);border-radius:99px;overflow:hidden}
+.prog-fill{height:100%;border-radius:99px;transition:width .4s ease}
+.country-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.25rem}
+.country-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem;box-shadow:var(--shadow)}
+.country-card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.country-flag-name{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700}
+.country-pct{font-size:20px;font-weight:800}
+.rol-line{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.rol-line:last-child{margin-bottom:0}
+.rol-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;min-width:52px;text-align:center}
+.pill-mando{background:var(--blue-bg);color:var(--blue)}
+.pill-cabina{background:var(--green-bg);color:var(--green)}
+.rol-track{flex:1;height:6px;background:var(--bg2);border-radius:99px;overflow:hidden}
+.rol-fill{height:100%;border-radius:99px}
+.rol-pct{font-size:11px;color:var(--text2);min-width:30px;text-align:right;font-weight:600}
+.rol-analyst{font-size:11px;color:var(--text3)}
+.own-highlight{border:2px solid var(--blue-border)!important}
+.own-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:var(--blue-bg);color:var(--blue);margin-left:6px}
+.analysts-overview{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.5rem}
+.analyst-overview-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;box-shadow:var(--shadow)}
+.aoc-header{display:flex;align-items:center;gap:10px;margin-bottom:.75rem}
+.aoc-name{font-size:13px;font-weight:700}
+.aoc-sub{font-size:11px;color:var(--text2)}
+.aoc-prog{height:5px;background:var(--bg2);border-radius:99px;overflow:hidden;margin-bottom:8px}
+.aoc-prog-fill{height:100%;border-radius:99px}
+.aoc-tags{display:flex;flex-wrap:wrap;gap:4px}
+.aoc-tag{font-size:10px;padding:2px 7px;border-radius:99px;font-weight:600}
+
+/* WARN PANEL */
+.warn-panel{display:none;background:var(--card);border:1.5px solid var(--amber-border);border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:1.25rem;box-shadow:var(--shadow)}
+.warn-panel.open{display:block}
+.warn-panel-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.warn-panel-hdr h3{font-size:14px;font-weight:700;color:var(--amber)}
+.btn-close-panel{border:none;background:transparent;color:var(--text2);font-size:18px;line-height:1}
+.warn-item{padding:12px 14px;border-radius:var(--radius);background:var(--amber-bg);border:1px solid var(--amber-border);margin-bottom:8px}
+.warn-item:last-child{margin-bottom:0}
+.warn-item-hdr{display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap}
+.warn-tag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px}
+.warn-country-tag{background:var(--blue-bg);color:var(--blue)}
+.warn-tipo-tag{background:var(--purple-bg);color:var(--purple)}
+.warn-subflota-tag{background:var(--green-bg);color:var(--green)}
+.warn-analyst-tag{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:600;margin-left:auto}
+.warn-task-name{font-size:13px;font-weight:600;margin-bottom:4px}
+.warn-note{font-size:12px;color:var(--text2);padding:6px 10px;background:rgba(255,255,255,.65);border-radius:6px;border-left:2px solid var(--amber);margin-bottom:8px}
+.warn-no-note{font-size:11px;color:var(--text3);font-style:italic;margin-bottom:8px}
+.warn-item-footer{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.warn-item-dates{font-size:11px;color:var(--text3)}
+.btn-resolve{padding:5px 14px;border-radius:8px;border:none;background:var(--green);color:#fff;font-size:12px;font-weight:700}
+.btn-resolve:hover{opacity:.85}
+.resolved-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--green-bg);color:var(--green)}
+.btn-reopen{padding:4px 10px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:11px}
+
+/* CHECKLIST */
+.cl-controls{display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;flex-wrap:wrap}
+.cl-select{padding:7px 12px;background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-size:13px;box-shadow:var(--shadow)}
+.cl-info-chip{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:99px;border:1px solid var(--border2);background:var(--card);font-size:12px;color:var(--text2);box-shadow:var(--shadow)}
+.etapa-section{margin-bottom:1rem}
+.etapa-header{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-radius:var(--radius) var(--radius) 0 0}
+.etapa-title-txt{font-size:12px;font-weight:700;letter-spacing:.03em;text-transform:uppercase}
+.etapa-progress-txt{font-size:12px;font-weight:700}
+.task-list{border:1px solid var(--border);border-radius:0 0 var(--radius) var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+.task-item{display:flex;align-items:center;gap:10px;padding:9px 14px;background:var(--card);border-bottom:1px solid var(--border);transition:background .1s}
+.task-item:last-child{border-bottom:none}
+.task-item:hover{background:var(--bg)}
+.task-item.is-done{opacity:.55}
+.tri-toggle{display:flex;border:1px solid var(--border2);border-radius:7px;overflow:hidden;flex-shrink:0}
+.tri-btn{width:30px;height:26px;border:none;background:transparent;font-size:11px;font-weight:700;color:var(--text3);transition:all .12s;display:flex;align-items:center;justify-content:center}
+.tri-btn:not(:last-child){border-right:1px solid var(--border2)}
+.tri-btn.active-done{background:var(--green);color:#fff}
+.tri-btn.active-warn{background:var(--amber);color:#fff}
+.tri-btn.active-na{background:var(--bg3);color:var(--text2)}
+.tri-btn:hover:not(.active-done):not(.active-warn):not(.active-na){background:var(--bg2);color:var(--text)}
+.task-name-txt{flex:1;font-size:13px;line-height:1.4}
+.task-name-txt.done{text-decoration:line-through;color:var(--text3)}
+.task-name-txt.na{color:var(--text3);font-style:italic}
+.task-note-preview{font-size:11px;color:var(--amber);display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap}
+.task-date-txt{font-size:11px;color:var(--text3);white-space:nowrap}
+.na-badge{font-size:10px;font-weight:700;padding:1px 6px;border-radius:99px;background:var(--na-bg);color:var(--na-color)}
+.warn-btn{padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:11px}
+.warn-btn:hover{border-color:var(--amber);color:var(--amber)}
+.warn-btn.active{background:var(--amber-bg);color:var(--amber);border-color:var(--amber)}
+/* custom task badges */
+.custom-badge{font-size:10px;font-weight:700;padding:1px 7px;border-radius:99px;margin-left:4px}
+.badge-global{background:rgba(47,125,224,0.12);color:#2f7de0}
+.badge-personal{background:rgba(124,58,237,0.12);color:#7c3aed}
+.badge-permanent{background:rgba(24,167,107,0.12);color:#18a76b}
+
+/* SETUP TABS */
+.setup-tabs{display:flex;gap:4px;margin-bottom:1.25rem;border-bottom:1px solid var(--border2);padding-bottom:0}
+.setup-tab{padding:8px 18px;border-radius:var(--radius) var(--radius) 0 0;border:none;background:transparent;color:var(--text2);font-size:13px;font-weight:500;margin-bottom:-1px;border-bottom:2px solid transparent;transition:all .15s}
+.setup-tab.active{color:var(--blue);border-bottom-color:var(--blue);background:var(--blue-bg)}
+.setup-tab:hover:not(.active){color:var(--text);background:var(--bg2)}
+.setup-panel{display:none}
+.setup-panel.active{display:block}
+.setup-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:12px;box-shadow:var(--shadow)}
+.setup-card h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);margin-bottom:1rem}
+.form-group{margin-bottom:12px}
+.form-label{font-size:11px;color:var(--text2);margin-bottom:5px;display:block;font-weight:600}
+.form-input,.form-select{width:100%;padding:8px 12px;background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-size:13px}
+.form-input:focus,.form-select:focus{outline:none;border-color:var(--blue)}
+.assignment-row{display:grid;grid-template-columns:2fr 1fr;gap:8px;align-items:end;padding:10px 0;border-bottom:1px solid var(--border)}
+.assignment-row:last-child{border-bottom:none}
+.profile-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.profile-row:last-child{border-bottom:none}
+.profile-row .av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.profile-row .pname{font-size:13px;font-weight:700}
+.profile-row .prole{font-size:11px;color:var(--text2)}
+.profile-row .pactions{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.btn-reset-pwd{padding:7px 12px;border-radius:var(--radius);border:1px solid var(--blue-border);background:var(--blue-bg);color:var(--blue);font-size:12px;font-weight:600;white-space:nowrap}
+.btn-reset-pwd:hover{opacity:.8}
+.btn-delete-profile{padding:7px 10px;border-radius:var(--radius);border:1px solid var(--red-border);background:transparent;color:var(--red);font-size:12px;font-weight:600}
+.btn-delete-profile:hover{background:var(--red-bg)}
+.assign-country{font-size:13px;font-weight:600;padding-top:4px}
+.save-btn{padding:10px 24px;background:var(--blue);color:#fff;border:none;border-radius:var(--radius);font-size:13px;font-weight:700;margin-top:12px;transition:opacity .15s}
+.save-btn:hover{opacity:.85}
+
+/* TEMPLATE EDITOR */
+.tpl-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:1rem;flex-wrap:wrap}
+.tpl-select{padding:7px 12px;background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-size:13px}
+.btn-add-task{padding:7px 16px;border-radius:var(--radius);border:none;background:var(--blue);color:#fff;font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px}
+.btn-add-task:hover{opacity:.85}
+.tpl-etapa-block{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow)}
+.tpl-etapa-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border)}
+.tpl-etapa-name{font-size:13px;font-weight:700}
+.tpl-etapa-count{font-size:11px;color:var(--text2)}
+.tpl-task-row{display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--border);transition:background .1s}
+.tpl-task-row:last-child{border-bottom:none}
+.tpl-task-row:hover{background:var(--bg)}
+.tpl-task-name{flex:1;font-size:13px}
+.tpl-task-meta{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:6px}
+.btn-del-task{padding:3px 8px;border-radius:6px;border:1px solid var(--red-border);background:var(--red-bg);color:var(--red);font-size:11px;font-weight:700;transition:all .15s}
+.btn-del-task:hover{background:var(--red);color:#fff}
+.btn-restore-task{padding:3px 8px;border-radius:6px;border:1px solid var(--green-border);background:var(--green-bg);color:var(--green);font-size:11px}
+.btn-restore-task:hover{background:var(--green);color:#fff}
+.tpl-task-row.deleted{opacity:.45;background:var(--red-bg)}
+.tpl-add-row{padding:8px 16px;display:flex;gap:8px;background:var(--bg);border-top:1px solid var(--border)}
+.tpl-add-input{flex:1;padding:6px 10px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--card);color:var(--text)}
+.tpl-add-input:focus{outline:none;border-color:var(--blue)}
+.scope-pills{display:flex;gap:4px}
+.scope-pill{padding:4px 10px;border-radius:99px;border:1px solid var(--border2);background:transparent;font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .12s}
+.scope-pill.sel-global{background:var(--blue-bg);color:var(--blue);border-color:var(--blue)}
+.scope-pill.sel-personal{background:var(--purple-bg);color:var(--purple);border-color:var(--purple)}
+.scope-pill.sel-permanent{background:var(--green-bg);color:var(--green);border-color:var(--green)}
+.analyst-multi{display:flex;flex-wrap:wrap;gap:4px;padding:6px 0}
+.analyst-pill{padding:3px 10px;border-radius:99px;border:1px solid var(--border2);font-size:11px;font-weight:600;cursor:pointer;transition:all .12s;background:var(--bg);color:var(--text2)}
+.analyst-pill.sel{color:#fff}
+.scope-info{font-size:11px;color:var(--text2);margin-top:4px;padding:6px 10px;background:var(--bg2);border-radius:6px}
+
+/* REPORT */
+.report-filters{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap}
+.rpt-select{padding:6px 10px;background:var(--bg);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:12px}
+.report-preview{flex:1;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius)}
+.report-preview table{width:100%;border-collapse:collapse}
+.report-preview th{background:var(--bg2);padding:6px 10px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text2);position:sticky;top:0;border-bottom:1px solid var(--border2)}
+.report-preview td{padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:top}
+.report-preview tr:last-child td{border-bottom:none}
+.report-preview tr:hover td{background:var(--bg)}
+.status-done-cell{color:var(--green);font-weight:700}
+.status-warn-cell{color:var(--amber);font-weight:700}
+.status-na-cell{color:var(--text2);font-weight:700}
+.status-pending-cell{color:var(--text3)}
+.resolved-cell{color:var(--green);font-size:10px}
+.btn-download{padding:8px 18px;border-radius:var(--radius);border:none;background:var(--green);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px}
+.btn-download:hover{opacity:.85}
+
+/* MODALS */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--card);border-radius:var(--radius-lg);border:1px solid var(--border2);padding:1.5rem;width:520px;max-width:95vw;box-shadow:var(--shadow-md)}
+.modal-box h2{font-size:15px;font-weight:700;margin-bottom:4px}
+.modal-box .modal-sub{font-size:12px;color:var(--text2);margin-bottom:1rem}
+.modal-textarea{width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-size:13px;resize:vertical;min-height:80px;line-height:1.5}
+.modal-textarea:focus{outline:none;border-color:var(--amber)}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.btn-save{padding:8px 18px;border-radius:var(--radius);border:none;background:var(--blue);color:#fff;font-size:13px;font-weight:600}
+.btn-save:hover{opacity:.85}
+.btn-cancel{padding:8px 14px;border-radius:var(--radius);border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:13px}
+.btn-cancel:hover{color:var(--text)}
+
+/* ADD TASK MODAL */
+.add-task-modal{width:580px}
+.add-task-modal .section-divider{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);margin:12px 0 6px}
+
+.toast{position:fixed;bottom:24px;right:24px;z-index:300;background:var(--text);color:var(--card);border-radius:var(--radius);padding:12px 18px;font-size:13px;font-weight:500;transform:translateY(80px);opacity:0;transition:all .25s;pointer-events:none;box-shadow:var(--shadow-md)}
+.toast.show{transform:translateY(0);opacity:1}
+.av-sm{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;flex-shrink:0}
+
+@media(max-width:700px){.metrics-row{grid-template-columns:1fr 1fr}.country-grid{grid-template-columns:1fr}.analysts-overview{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<!-- LOADING -->
+<div id="loading-screen" style="display:flex;position:fixed;inset:0;z-index:999;background:#f4f5f7;align-items:center;justify-content:center;flex-direction:column;gap:16px">
+  <div style="font-size:2rem">✈️</div>
+  <div style="font-size:14px;font-weight:600;color:#1a1d27">Cargando datos...</div>
+  <div style="width:200px;height:4px;background:#e4e6ec;border-radius:99px;overflow:hidden">
+    <div id="loading-bar" style="height:100%;width:0%;background:#2f7de0;border-radius:99px;animation:loadbar 1.5s ease infinite"></div>
+  </div>
+  <style>@keyframes loadbar{0%{width:0%}50%{width:70%}100%{width:100%}}</style>
+</div>
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo"><span class="plane">✈️</span><h1>Rol de Vuelo</h1><p>Panel de confección — Crew Planning</p></div>
+    <div class="login-label">Selecciona tu perfil para ingresar</div>
+    <div class="analyst-grid" id="analyst-grid"></div>
+    <div class="form-group" id="login-password-group" style="display:none;margin-bottom:1.25rem">
+      <label class="form-label" id="login-password-label">Contraseña</label>
+      <input type="password" class="form-input" id="login-password" placeholder="Ingresa tu contraseña" oninput="checkLoginReady()" onkeydown="if(event.key==='Enter')doLogin()">
+      <div id="login-password-error" style="display:none;color:var(--red);font-size:12px;margin-top:6px;font-weight:600">Contraseña incorrecta</div>
+    </div>
+    <button class="btn-enter" id="btn-enter" onclick="doLogin()">Ingresar al panel</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo">✈ Rol de <span>Vuelo</span> <span id="process-name-display" style="font-size:12px;font-weight:500;color:var(--text2);margin-left:4px"></span></div>
+      <nav class="nav-tabs">
+        <button class="nav-tab active" onclick="showTab('overview',this)">Resumen general</button>
+        <button class="nav-tab" id="tab-checklist-btn" onclick="showTab('checklist',this)">Checklist</button>
+        <button class="nav-tab" id="tab-report-btn" onclick="showTab('report',this)">📊 Reporte</button>
+        <button class="nav-tab" id="tab-setup-btn" onclick="showTab('setup',this)" style="display:none">⚙ Configuración</button>
+      </nav>
+    </div>
+    <div class="topbar-right">
+      <div class="user-chip"><div class="av" id="user-av"></div><span class="uname" id="user-name-display"></span></div>
+      <button class="btn-logout" id="btn-change-password" onclick="openPasswordModal()" style="display:none">🔒 Contraseña</button>
+      <button class="btn-logout" onclick="doLogout()">Salir</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- OVERVIEW -->
+    <div class="section active" id="sec-overview">
+      <!-- JetSmart header + process name -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:12px">
+        <div style="display:flex;align-items:center;gap:20px">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50" style="height:42px;width:auto">
+  <text x="2" y="38" font-family="Georgia, serif" font-style="italic" font-weight="700" font-size="36" fill="#C8102E">Jet</text>
+  <text x="74" y="38" font-family="Arial, sans-serif" font-weight="900" font-size="34" fill="#1B2A6B">SMART</text>
+</svg>
+          <div>
+            <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);margin-bottom:2px">Confección de Rol</div>
+            <div id="overview-process-title" style="font-size:20px;font-weight:800;letter-spacing:-.02em;color:var(--text)">—</div>
+          </div>
+        </div>
+        <div id="deadline-bar-container" style="flex:1;min-width:260px;max-width:420px"></div>
+      </div>
+      <div class="metrics-row" id="metrics-row"></div>
+      <div class="big-progress" id="big-progress"></div>
+      <div class="warn-panel" id="warn-panel">
+        <div class="warn-panel-hdr"><h3>⚠ Advertencias activas</h3><button class="btn-close-panel" onclick="closeWarnPanel()">×</button></div>
+        <div id="warn-panel-body"></div>
+      </div>
+      <div class="country-grid" id="country-grid"></div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);margin-bottom:10px">Programadores</div>
+      <div class="analysts-overview" id="analysts-overview"></div>
+    </div>
+
+    <!-- CHECKLIST -->
+    <div class="section" id="sec-checklist">
+      <div class="section-title">Checklist <span>de tareas</span></div>
+      <div class="cl-controls">
+        <span style="font-size:12px;color:var(--text2);font-weight:600">País:</span>
+        <select class="cl-select" id="cl-country" onchange="renderChecklist()"></select>
+        <span style="font-size:12px;color:var(--text2);font-weight:600">Tipo:</span>
+        <select class="cl-select" id="cl-tipo" onchange="renderChecklist()">
+          <option value="Mando">Mando</option>
+          <option value="Cabina">Cabina</option>
+        </select>
+        <div class="cl-info-chip" id="cl-info-chip">— Sin asignar —</div>
+      </div>
+      <div id="estimate-card" style="margin-bottom:1.25rem"></div>
+      <div id="checklist-body"></div>
+    </div>
+
+    <!-- REPORT -->
+    <div class="section" id="sec-report">
+      <div class="section-title">
+        Reporte <span>de registros</span>
+        <button class="btn-download" onclick="downloadExcel()">⬇ Descargar Excel</button>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem;box-shadow:var(--shadow)">
+        <div class="report-filters">
+          <span style="font-size:12px;color:var(--text2);font-weight:600;align-self:center">Filtrar:</span>
+          <select class="rpt-select" id="rpt-country" onchange="renderReport()"><option value="">Todos los países</option><option value="Chile">🇨🇱 Chile</option><option value="Argentina">🇦🇷 Argentina</option><option value="Colombia">🇨🇴 Colombia</option><option value="Peru">🇵🇪 Perú</option></select>
+          <select class="rpt-select" id="rpt-tipo" onchange="renderReport()"><option value="">Mando + Cabina</option><option value="Mando">Mando</option><option value="Cabina">Cabina</option></select>
+          <select class="rpt-select" id="rpt-status" onchange="renderReport()"><option value="">Todos los estados</option><option value="done">✓ Completado</option><option value="warn">⚠ Advertencia</option><option value="na">N/A</option><option value="pending">Pendiente</option></select>
+          <select class="rpt-select" id="rpt-analyst" onchange="renderReport()"><option value="">Todos los programadores</option></select>
+        </div>
+        <div class="report-preview" id="report-table-wrap" style="max-height:500px"></div>
+        <div style="margin-top:8px"><span style="font-size:12px;color:var(--text2)" id="report-count"></span></div>
+      </div>
+    </div>
+
+    <!-- SETUP -->
+    <div class="section" id="sec-setup">
+      <div class="section-title">⚙ Configuración <span>del proceso</span></div>
+      <div class="setup-tabs">
+        <button class="setup-tab active" onclick="showSetupPanel('asignaciones',this)">Asignaciones y Deadline</button>
+        <button class="setup-tab" onclick="showSetupPanel('plantilla',this)">📋 Plantilla de Checklist</button>
+        <button class="setup-tab" onclick="showSetupPanel('perfiles',this)">🔑 Perfiles y Contraseñas</button>
+      </div>
+
+      <!-- Panel asignaciones -->
+      <div class="setup-panel active" id="sp-asignaciones">
+        <div class="setup-card">
+          <h3>Nombre del proceso</h3>
+          <div class="form-group">
+            <label class="form-label">Nombre o identificador del rol que se está confeccionando</label>
+            <input type="text" class="form-input" id="process-name-input" placeholder="Ej: Rol Mayo 2026, Rol Junio 2026..." style="max-width:420px" oninput="state.processName=this.value;saveState();updateProcessDisplay()">
+          </div>
+        </div>
+        <div class="setup-card">
+          <h3>Deadline de publicación</h3>
+          <div class="form-group">
+            <label class="form-label">Fecha límite de publicación del rol de vuelo hacia tripulaciones</label>
+            <input type="date" class="form-input" id="dl-input" style="max-width:220px" onchange="state.deadline=this.value;saveState()">
+          </div>
+        </div>
+        <div class="setup-card">
+          <h3>Asignaciones — País y Programador por tipo de rol</h3>
+          <div id="assign-form"></div>
+          <button class="save-btn" onclick="saveSetup()">Guardar configuración</button>
+          <button style="padding:10px 18px;border-radius:var(--radius);border:1px solid var(--red-border);background:transparent;color:var(--red);font-size:13px;font-weight:600;margin-top:12px;margin-left:8px" onclick="clearAssignments()">↺ Limpiar asignaciones</button>
+        </div>
+        <div class="setup-card" style="border:1.5px solid var(--red-border);background:var(--red-bg)">
+          <h3 style="color:var(--red)">⚠ Zona de reinicio</h3>
+          <p style="font-size:13px;color:var(--text2);margin-bottom:1rem;line-height:1.6">Al formatear se borrarán <strong>todos los registros del checklist</strong> (checks, advertencias, notas, resoluciones). La configuración de asignaciones, plantilla y deadline se mantienen. Esta acción es irreversible.</p>
+          <button style="padding:10px 22px;border-radius:var(--radius);border:none;background:var(--red);color:#fff;font-size:13px;font-weight:700" onclick="resetAllChecks()">🗑 Formatear — Iniciar nuevo proceso</button>
+        </div>
+      </div>
+
+      <!-- Panel plantilla -->
+      <div class="setup-panel" id="sp-plantilla">
+        <div class="setup-card" style="margin-bottom:12px">
+          <h3>Editor de plantilla de checklist</h3>
+          <p style="font-size:13px;color:var(--text2);margin-bottom:1rem;line-height:1.6">
+            Aquí puedes modificar la plantilla base del checklist: eliminar tareas de la plantilla original, 
+            agregar tareas nuevas con distintos alcances, o restaurar tareas eliminadas.
+            Los cambios se reflejan inmediatamente en el checklist de todos los programadores.
+          </p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem">
+            <div style="padding:8px 14px;border-radius:var(--radius);background:var(--blue-bg);border:1px solid rgba(47,125,224,0.2);font-size:12px">
+              <span style="font-weight:700;color:var(--blue)">Global</span><span style="color:var(--text2);margin-left:6px">— Aplica a todos los programadores</span>
+            </div>
+            <div style="padding:8px 14px;border-radius:var(--radius);background:var(--purple-bg);border:1px solid rgba(124,58,237,0.2);font-size:12px">
+              <span style="font-weight:700;color:var(--purple)">Personal</span><span style="color:var(--text2);margin-left:6px">— Solo para programadores seleccionados</span>
+            </div>
+            <div style="padding:8px 14px;border-radius:var(--radius);background:var(--green-bg);border:1px solid rgba(24,167,107,0.2);font-size:12px">
+              <span style="font-weight:700;color:var(--green)">Permanente</span><span style="color:var(--text2);margin-left:6px">— Se mantiene en futuros periodos</span>
+            </div>
+          </div>
+          <div class="tpl-toolbar">
+            <span style="font-size:12px;color:var(--text2);font-weight:600">Tipo de rol:</span>
+            <select class="tpl-select" id="tpl-tipo" onchange="renderTemplateEditor()">
+              <option value="Mando">Mando</option>
+              <option value="Cabina">Cabina</option>
+            </select>
+            <button class="btn-add-task" onclick="openAddTaskModal()">+ Agregar tarea</button>
+            <button style="padding:7px 14px;border-radius:var(--radius);border:1px solid var(--red-border);background:var(--red-bg);color:var(--red);font-size:12px;font-weight:600" onclick="resetTemplate()">↺ Restaurar plantilla original</button>
+          </div>
+          <div id="template-editor-body"></div>
+        </div>
+      </div>
+
+      <!-- Panel perfiles -->
+      <div class="setup-panel" id="sp-perfiles">
+        <div class="setup-card">
+          <h3>Crear nuevo perfil</h3>
+          <p style="font-size:13px;color:var(--text2);margin-bottom:1rem;line-height:1.6">Crea un perfil nuevo si se incorpora un programador al equipo, o un perfil adicional de solo lectura.</p>
+          <div class="form-group">
+            <label class="form-label">Nombre completo</label>
+            <input type="text" class="form-input" id="np-name" placeholder="Ej: Sofía Ramírez" style="max-width:340px">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tipo de perfil</label>
+            <select class="form-select" id="np-role" style="max-width:340px">
+              <option value="programador">Programador — acceso normal con contraseña</option>
+              <option value="vista">Vista general — solo lectura, sin contraseña</option>
+            </select>
+          </div>
+          <div id="np-error" style="display:none;color:var(--red);font-size:12px;font-weight:600;margin-bottom:8px"></div>
+          <button class="save-btn" onclick="createNewProfile()">+ Crear perfil</button>
+        </div>
+        <div class="setup-card">
+          <h3>Perfiles y contraseñas</h3>
+          <p style="font-size:13px;color:var(--text2);margin-bottom:1rem;line-height:1.6">Restablece la contraseña de cualquier perfil (por ejemplo, si un programador la olvidó), o elimina un perfil que ya no se necesite. No puedes eliminar tu propio perfil ni dejar el sistema sin ningún Admin/Manager. El perfil Vista general no usa contraseña.</p>
+          <div id="profiles-list"></div>
+        </div>
+        <div class="setup-card" id="deleted-profiles-section" style="display:none">
+          <h3>Perfiles eliminados</h3>
+          <p style="font-size:13px;color:var(--text2);margin-bottom:1rem;line-height:1.6">Perfiles originales del equipo que fueron eliminados. Puedes restaurarlos en cualquier momento.</p>
+          <div id="deleted-profiles-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NOTE MODAL -->
+<div class="modal-overlay" id="note-modal">
+  <div class="modal-box">
+    <h2 id="modal-title">Nota de advertencia</h2>
+    <p class="modal-sub" id="modal-sub"></p>
+    <textarea class="modal-textarea" id="modal-textarea" placeholder="Describe la advertencia..."></textarea>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeNoteModal()">Cancelar</button>
+      <button class="btn-save" id="modal-save-btn" onclick="saveNote()">Guardar nota</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONGRATS MODAL -->
+<div class="modal-overlay" id="congrats-modal">
+  <div class="modal-box" style="text-align:center">
+    <div style="font-size:2.8rem;margin-bottom:6px;line-height:1">🎉</div>
+    <h2 style="margin-bottom:6px">¡Felicitaciones!</h2>
+    <p class="modal-sub" id="congrats-text" style="margin-bottom:1.25rem"></p>
+    <div class="modal-actions" style="justify-content:center">
+      <button class="btn-save" onclick="closeCongratsModal()">¡Gracias!</button>
+    </div>
+  </div>
+</div>
+
+<!-- PASSWORD MODAL -->
+<div class="modal-overlay" id="password-modal">
+  <div class="modal-box">
+    <h2>Cambiar contraseña</h2>
+    <p class="modal-sub">Actualiza la contraseña de tu perfil. Solo tú y quienes conozcan la contraseña actual pueden cambiarla.</p>
+    <div class="form-group">
+      <label class="form-label">Contraseña actual</label>
+      <input type="password" class="form-input" id="pwd-current" placeholder="Contraseña actual">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nueva contraseña</label>
+      <input type="password" class="form-input" id="pwd-new" placeholder="Nueva contraseña">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Confirmar nueva contraseña</label>
+      <input type="password" class="form-input" id="pwd-confirm" placeholder="Repite la nueva contraseña">
+    </div>
+    <div id="pwd-error" style="display:none;color:var(--red);font-size:12px;font-weight:600;margin-bottom:8px"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closePasswordModal()">Cancelar</button>
+      <button class="btn-save" onclick="submitPasswordChange()">Guardar contraseña</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD TASK MODAL -->
+<div class="modal-overlay" id="add-task-modal">
+  <div class="modal-box add-task-modal">
+    <h2>Agregar tarea al checklist</h2>
+    <p class="modal-sub">La tarea se añadirá a la plantilla según el alcance que definas.</p>
+
+    <div class="form-group">
+      <div class="form-label">Nombre de la tarea *</div>
+      <input type="text" class="form-input" id="new-task-name" placeholder="Ej: Verificar disponibilidad de aeronaves...">
+    </div>
+
+    <div class="form-group">
+      <div class="form-label">Etapa</div>
+      <select class="form-select" id="new-task-etapa"></select>
+    </div>
+
+    <div class="add-task-modal-section section-divider">Alcance de la tarea</div>
+    <div class="scope-pills" id="scope-pills" style="margin-bottom:10px">
+      <button class="scope-pill sel-global" data-scope="global" onclick="selectScope('global')">Global — todos</button>
+      <button class="scope-pill" data-scope="personal" onclick="selectScope('personal')">Personal — seleccionados</button>
+      <button class="scope-pill" data-scope="permanent" onclick="selectScope('permanent')">Permanente — siempre</button>
+    </div>
+    <div class="scope-info" id="scope-info-text">Aplicará a todos los programadores en el checklist actual.</div>
+
+    <div id="analyst-selector" style="display:none;margin-top:10px">
+      <div class="form-label">Selecciona los programadores:</div>
+      <div class="analyst-multi" id="analyst-multi-pills"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeAddTaskModal()">Cancelar</button>
+      <button class="btn-save" onclick="saveNewTask()">Agregar tarea</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ════════════════════════════════════════
+   ANALYSTS & STATIC DATA
+════════════════════════════════════════ */
+const BASE_ANALYSTS=[
+  {id:'daniel', name:'Daniel López',     short:'Daniel',  initials:'DL',color:'#1a1d27',bg:'rgba(26,29,39,0.12)',  isAdmin:true,isManager:true},
+  {id:'erick',  name:'Erick Riveros',    short:'Erick',   initials:'ER',color:'#0d9488',bg:'rgba(13,148,136,0.13)',isAdmin:true},
+  {id:'jimmy',  name:'Jimmy Hueichaqueo',short:'Jimmy',   initials:'JH',color:'#2f7de0',bg:'rgba(47,125,224,0.15)'},
+  {id:'camila', name:'Camila Sereño',    short:'Camila',  initials:'CS',color:'#18a76b',bg:'rgba(24,167,107,0.15)'},
+  {id:'diego',  name:'Diego Cortes',     short:'Diego',   initials:'DC',color:'#d97706',bg:'rgba(217,119,6,0.15)'},
+  {id:'maria',  name:'Maria A. Vargas',  short:'Maria A.',initials:'MV',color:'#dc3545',bg:'rgba(220,53,69,0.13)'},
+  {id:'felipe', name:'Felipe Berrios',   short:'Felipe',  initials:'FB',color:'#7c3aed',bg:'rgba(124,58,237,0.13)'},
+  {id:'matias', name:'Matias Carvallo',  short:'Matias',  initials:'MC',color:'#b45309',bg:'rgba(180,83,9,0.13)'},
+  {id:'vista',  name:'Vista General',   short:'Vista',   initials:'VG',color:'#6b7080',bg:'rgba(107,112,128,0.13)',isViewOnly:true},
+];
+/* ANALYSTS = BASE_ANALYSTS (menos los eliminados) + perfiles creados dinámicamente por Admin/Manager */
+let ANALYSTS=[...BASE_ANALYSTS];
+function rebuildAnalysts(){
+  const deleted=new Set(state.deletedBaseAnalysts||[]);
+  ANALYSTS=[...BASE_ANALYSTS.filter(a=>!deleted.has(a.id)),...(state.customAnalysts||[])];
+}
+const COUNTRIES=['Chile','Argentina','Colombia','Peru'];
+const FLAGS={Chile:'🇨🇱',Argentina:'🇦🇷',Colombia:'🇨🇴',Peru:'🇵🇪'};
+const TIPOS=['Mando','Cabina'];
+const PAISES_CODES={Chile:'CHL',Argentina:'ARG',Colombia:'COL',Peru:'PER'};
+
+/* Base template — original from Excel, never mutated */
+const BASE_TASKS={
+  Cabina:[
+    {etapa:'Etapa 1 — Actividades de tierra',color:'#2f7de0',tasks:['Validación de vacaciones','Legalizar secuencia de trabajo por vacaciones (si corresponde)','Cumpleaños BDAY','LBRE día siguiente (si corresponde)','Rol Estudiante','Rol Maternal','SIND','Rol Quincena','Oficinas','Validar oficinas','Libres Administrativos','Reunión Revisión Input — Jefatura Crew','Verificar información del input y del sistema','Verificación días libres antes de instrucción','Cargar input jefatura (Sin Feedback)','Limpieza y balance de Libres requeridos','Indicadores de VAC, Instrucción y Dotación']},
+    {etapa:'Etapa 2 — Pairing / Actividades de vuelo',color:'#7c3aed',tasks:['Revisar que todos los vuelos de traslado sean reales (no pueden pasar TBA)','Correr rol Ultra + Instructor@s','Nivelar ROL ULTRA + Instructor@s','Asignar tripulantes según input','Asignación de vuelos inaugurales de ruta','Asignación de vuelos delivery','Asignación de traslados por check-c','Asignación de vuelos de chequeo / habilitación de ruta','Asignación de vuelos para chequeo IE + Trainers','Asignar vuelos requeridos']},
+    {etapa:'Etapa 3 — Autoroster',color:'#d97706',tasks:['Correr ROL CC','Correcciones','Levantamiento de Warnings','Borrar Rol','Aplicar palancas','Correr ROL CC (segunda vez)','PRIMERA Revisión de Avance — Daniel López']},
+    {etapa:'Etapa 4 — Preparación de ROL',color:'#dc3545',tasks:['Rol Maternal','Ingreso de Inactivos (SICK, FVUE, BABY)','Ajuste de secuencias de asignaciones','Cubrir vuelos descubiertos','Completar capa de Turnos','Nivelación','Indicadores Horas, Turnos, Libres, Blancos, Vacaciones, Instrucción, Dotación','Asignar Feedback','Asignación Libres compensados','Revisión FINAL de Avance — Daniel López']},
+    {etapa:'Etapa 4.5 — Revisión Cruzada',color:'#0d9488',tasks:['Cobertura de Vuelos','Configuración de Pairing (CP/FO — TS/TEA — CST — OBS)','Cantidad y agrupamiento de Libres (según reglamentación local)','Cumplimiento de Turnos según normativa Sindical','Productividad Crew Activa — Diferencia de 6,0 entre Min y Max']},
+    {etapa:'Etapa 5 — Publicación',color:'#18a76b',tasks:['Revisión de legalidades','Verificación vuelos descubiertos','Cobertura de turnos','Revisión Final Rol a Publicar — Jefatura Crew (*)','Verificar Nivelación de horas','Notificar días libres requeridos rechazados','Publicar']},
+  ],
+  Mando:[
+    {etapa:'Etapa 1 — Actividades de tierra',color:'#2f7de0',tasks:['Validación de vacaciones','Legalizar secuencia de trabajo por vacaciones (si corresponde)','Cumpleaños BDAY','LBRE día siguiente (si corresponde)','Rol Estudiante','Rol Maternal','SIND','Rol Quincena','Oficinas','Validar oficinas','Libres Administrativos','Reunión Revisión Input — Jefatura Crew','Verificar información del input y del sistema','Verificación días libres antes de instrucción','Cargar input jefatura','Limpieza y balance de Libres requeridos','Indicadores de VAC, Instrucción y Dotación']},
+    {etapa:'Etapa 2 — Pairing / Actividades de vuelo',color:'#7c3aed',tasks:['Revisar que todos los vuelos de traslado sean reales (no pueden pasar TBA)','Correr rol Instructores','Optimizar rol instructores','Nivelación ROL Instructores','Revisar STATUS alumnos (mes anterior)','Armar EIO de alumnos paso anterior','Continuar EIO de input instrucción','Asignación de vuelos de chequeo / habilitación de ruta','Asignación de vuelos inaugurales de ruta','Asignación de vuelos delivery','Asignación de traslados por check-c','Asignación de vuelos habilitación material A321','Asignación de vuelos para chequeo IE + Trainers','Asignar vuelos requeridos']},
+    {etapa:'Etapa 3 — Autoroster',color:'#d97706',tasks:['Correr ROL FD','Correcciones','Levantamiento de Warnings','Borrar Rol','Aplicar palancas','Correr ROL FD (segunda vez)','PRIMERA Revisión de Avance — Daniel López (PM)']},
+    {etapa:'Etapa 4 — Preparación de ROL',color:'#dc3545',tasks:['Rol Maternal','Ingreso de Inactivos (SICK, FVUE, BABY)','Ajuste de secuencias de asignaciones','Cubrir vuelos descubiertos','Completar capa de Turnos','Nivelación','Indicadores Horas, Turnos, Libres, Blancos, Vacaciones, Instrucción, Dotación','Asignación Libres compensados','Revisión FINAL de Avance — Daniel López (PM)']},
+    {etapa:'Etapa 4.5 — Revisión Cruzada',color:'#0d9488',tasks:['Cobertura de Vuelos','Configuración de Pairing (CP/FO — TS/TEA — CST — OBS)','Cantidad y agrupamiento de Libres (según reglamentación local)','Cumplimiento de Turnos según normativa Sindical','Productividad Crew Activa — Diferencia de 6,0 entre Min y Max']},
+    {etapa:'Etapa 5 — Publicación',color:'#18a76b',tasks:['Revisión de legalidades','Verificación vuelos descubiertos','Cobertura de turnos','Reunión Revisión Final Rol a Publicar — Jefatura Crew (*)','Verificar Nivelación de horas','Notificar días libres requeridos rechazados','Publicar']},
+  ]
+};
+
+/* ════════════════════════════════════════
+   STATE
+   customTasks[tipo] = array of {id, name, etapa, scope:'global'|'personal'|'permanent', analysts:[], createdBy, createdAt, deleted:false}
+   deletedBaseTasks[tipo] = Set of task names removed from base template
+════════════════════════════════════════ */
+let state={checks:{},assignments:{},deadline:'',passwords:{},customAnalysts:[],deletedBaseAnalysts:[],customTasks:{Mando:[],Cabina:[]},deletedBaseTasks:{Mando:[],Cabina:[]},estimates:{},estimateHistory:[]};
+let currentUser=null;
+
+/* ═══ SUPABASE ═══ */
+const SUPA_URL='https://yvloxzmrwmxdqvfnddmz.supabase.co';
+const SUPA_KEY='sb_publishable_IbxRssBZ-hac-sULSRUCwg_Led1nVcI';
+const _sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
+
+async function sbGet(table,key){
+  const {data}=await _sb.from(table).select('*').eq('key',key).single();
+  return data;
+}
+async function sbSet(table,key,value){
+  await _sb.from(table).upsert({key,...value},{onConflict:'key'});
+}
+async function sbUpsertById(table,obj){
+  await _sb.from(table).upsert(obj,{onConflict:'id'});
+}
+async function sbDel(table,key){
+  await _sb.from(table).delete().eq('key',key);
+}
+
+/* Save individual check to Supabase */
+async function saveCheck(k,ch){
+  await _sb.from('checks').upsert({
+    id:k, status:ch.status||'pending', datetime:ch.datetime||'',
+    note:ch.note||'', analyst_id:ch.analystId||'',
+    resolved_at:ch.resolvedAt||'', resolved_by:ch.resolvedBy||''
+  },{onConflict:'id'});
+}
+
+/* Save single assignment */
+async function saveAssignment(k,a){
+  await _sb.from('assignments').upsert({
+    key:k, analyst:a.analyst||'', base:a.base||'', subflota:a.subflota||''
+  },{onConflict:'key'});
+}
+
+/* Save config key */
+async function saveConfig(key,value){
+  await _sb.from('config').upsert({key,value},{onConflict:'key'});
+}
+
+/* Load ALL state from Supabase */
+async function loadState(){
+  state={checks:{},assignments:{},deadline:'',processName:'',passwords:{},customAnalysts:[],deletedBaseAnalysts:[],customTasks:{Mando:[],Cabina:[]},deletedBaseTasks:{Mando:[],Cabina:[]},estimates:{},estimateHistory:[]};
+  try{
+    // Load config
+    const {data:cfgRows}=await _sb.from('config').select('*');
+    if(cfgRows)cfgRows.forEach(r=>{
+      if(r.key==='deadline')state.deadline=r.value||'';
+      if(r.key==='processName')state.processName=r.value||'';
+      if(r.key&&r.key.startsWith('pwd_'))state.passwords[r.key.slice(4)]=r.value||'';
+      if(r.key==='custom_analysts'){try{state.customAnalysts=JSON.parse(r.value||'[]');}catch(e){state.customAnalysts=[];}}
+      if(r.key==='deleted_base_analysts'){try{state.deletedBaseAnalysts=JSON.parse(r.value||'[]');}catch(e){state.deletedBaseAnalysts=[];}}
+    });
+    rebuildAnalysts();
+    // Load assignments
+    const {data:asgRows}=await _sb.from('assignments').select('*');
+    if(asgRows)asgRows.forEach(r=>{state.assignments[r.key]={analyst:r.analyst||'',base:r.base||'',subflota:r.subflota||''}});
+    // Load checks
+    const {data:chkRows}=await _sb.from('checks').select('*');
+    if(chkRows)chkRows.forEach(r=>{state.checks[r.id]={status:r.status||'pending',datetime:r.datetime||'',note:r.note||'',analystId:r.analyst_id||'',resolvedAt:r.resolved_at||'',resolvedBy:r.resolved_by||''}});
+    // Load custom tasks
+    const {data:ctRows}=await _sb.from('custom_tasks').select('*');
+    if(ctRows)ctRows.forEach(r=>{
+      const tipo=r.tipo;if(!state.customTasks[tipo])state.customTasks[tipo]=[];
+      let analysts=[];try{analysts=JSON.parse(r.analysts||'[]');}catch(e){}
+      state.customTasks[tipo].push({id:r.id,name:r.name,etapa:r.etapa,scope:r.scope,analysts,createdBy:r.created_by||'',createdAt:r.created_at||'',deleted:r.deleted||false});
+    });
+    // Load deleted base tasks
+    const {data:dbtRows}=await _sb.from('deleted_base_tasks').select('*');
+    if(dbtRows)dbtRows.forEach(r=>{
+      if(!state.deletedBaseTasks[r.tipo])state.deletedBaseTasks[r.tipo]=[];
+      if(!state.deletedBaseTasks[r.tipo].includes(r.task_name))state.deletedBaseTasks[r.tipo].push(r.task_name);
+    });
+    // Load publication date estimates (current value per país+tipo)
+    const {data:estRows}=await _sb.from('estimates').select('*');
+    if(estRows)estRows.forEach(r=>{state.estimates[r.key]={date:r.date||'',analystId:r.analyst_id||'',updatedAt:r.updated_at||''};});
+    // Load estimate history (full seguimiento log)
+    const {data:histRows}=await _sb.from('estimate_history').select('*').order('created_at',{ascending:false});
+    if(histRows)state.estimateHistory=histRows.map(r=>({id:r.id,country:r.country,tipo:r.tipo,date:r.date,analystId:r.analyst_id,createdAt:r.created_at}));
+  }catch(e){console.error('loadState error:',e);}
+}
+
+/* saveState is now a no-op — saves happen individually */
+function saveState(){}
+
+
+/* Build effective task list for a tipo+analystId */
+function getEffectiveTasks(tipo, analystId){
+  const deleted=new Set(state.deletedBaseTasks[tipo]||[]);
+  const result=[];
+  for(const group of BASE_TASKS[tipo]){
+    const activeTasks=group.tasks.filter(t=>!deleted.has(t));
+    // Add custom tasks for this etapa
+    const customForGroup=(state.customTasks[tipo]||[]).filter(ct=>
+      ct.etapa===group.etapa && !ct.deleted &&
+      (ct.scope==='global'||ct.scope==='permanent'||(ct.scope==='personal'&&(!analystId||ct.analysts.includes(analystId))))
+    );
+    const allTasks=[...activeTasks,...customForGroup.map(ct=>({custom:true,id:ct.id,name:ct.name,scope:ct.scope,analysts:ct.analysts}))];
+    if(allTasks.length>0) result.push({etapa:group.etapa,color:group.color,tasks:allTasks});
+  }
+  return result;
+}
+
+function tkey(c,t,e,task){return `${c}||${t}||${e}||${task}`;}
+function getCheck(c,t,e,task){return state.checks[tkey(c,t,e,task)]||{status:'pending',datetime:'',note:'',analystId:'',resolvedAt:'',resolvedBy:''};}
+function setCheck(c,t,e,task,data){
+  const k=tkey(c,t,e,task);
+  state.checks[k]={...getCheck(c,t,e,task),...data};
+  saveCheck(k,state.checks[k]); // persist to Supabase
+}
+function nowStr(){return new Date().toLocaleString('es-CL',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+function isEffectiveDone(ch){return ch.status==='done'||ch.status==='na';}
+
+function totalTasksFor(tipo, analystId){
+  return getEffectiveTasks(tipo, analystId).reduce((a,g)=>a+g.tasks.length,0);
+}
+function doneTasksFor(c,tipo,analystId){
+  let d=0;
+  for(const g of getEffectiveTasks(tipo,analystId))
+    for(const task of g.tasks){
+      const name=task.name||task;
+      if(isEffectiveDone(getCheck(c,tipo,g.etapa,name)))d++;
+    }
+  return d;
+}
+// legacy aliases for overview
+function totalTasks(tipo){return totalTasksFor(tipo,null);}
+function doneTasks(c,tipo){return doneTasksFor(c,tipo,null);}
+
+function getAssignment(c,tipo){return state.assignments[c+'|'+tipo]||{};}
+function analystById(id){return ANALYSTS.find(a=>a.id===id);}
+
+/* ═══ FECHA ESTIMADA DE PUBLICACIÓN (por país+tipo) ═══ */
+function estKey(c,t){return c+'|'+t;}
+function getEstimate(c,t){return state.estimates[estKey(c,t)]||null;}
+function estimateHistoryFor(c,t){
+  return (state.estimateHistory||[]).filter(h=>h.country===c&&h.tipo===t).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+}
+/* Compara la fecha estimada contra el deadline global.
+   'none' sin estimar · 'ok' con margen · 'warn' muy justo (≤2 días de margen) · 'late' después del deadline */
+function estimateRiskLevel(dateStr){
+  if(!dateStr)return 'none';
+  if(!state.deadline)return 'ok';
+  const est=new Date(dateStr+'T00:00:00'),dl=new Date(state.deadline+'T00:00:00');
+  if(isNaN(est)||isNaN(dl))return 'ok';
+  const diff=Math.ceil((dl-est)/86400000);
+  if(diff<0)return 'late';
+  if(diff<=2)return 'warn';
+  return 'ok';
+}
+async function setEstimate(c,t,dateVal){
+  const a=getAssignment(c,t);
+  const canEdit=currentUser&&(currentUser.isAdmin||currentUser.isManager||a.analyst===currentUser.id);
+  if(!canEdit){toast('No tienes permiso para estimar este rol');return;}
+  if(!dateVal)return;
+  const k=estKey(c,t);
+  const ts=nowStr();
+  state.estimates[k]={date:dateVal,analystId:currentUser.id,updatedAt:ts};
+  await _sb.from('estimates').upsert({key:k,country:c,tipo:t,date:dateVal,analyst_id:currentUser.id,updated_at:ts},{onConflict:'key'});
+  const histId='esth_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
+  if(!state.estimateHistory)state.estimateHistory=[];
+  state.estimateHistory.unshift({id:histId,country:c,tipo:t,date:dateVal,analystId:currentUser.id,createdAt:ts});
+  await _sb.from('estimate_history').insert({id:histId,country:c,tipo:t,date:dateVal,analyst_id:currentUser.id,created_at:ts});
+  renderChecklist();renderOverview();
+  toast('Fecha estimada guardada ✓');
+}
+function estimateBadgeHtml(c,t){
+  const est=getEstimate(c,t);
+  if(!est||!est.date)return '<span style="font-size:10px;color:var(--text3);margin-left:6px;font-weight:600">· sin estimar</span>';
+  const risk=estimateRiskLevel(est.date);
+  const color={ok:'var(--green)',warn:'var(--amber)',late:'var(--red)',none:'var(--text3)'}[risk];
+  const bg={ok:'var(--green-bg)',warn:'var(--amber-bg)',late:'var(--red-bg)',none:'var(--bg2)'}[risk];
+  return `<span style="font-size:10px;font-weight:700;padding:1px 8px;border-radius:99px;background:${bg};color:${color};margin-left:6px;white-space:nowrap">📅 ${formatDate(est.date)}</span>`;
+}
+
+function allWarns(){
+  const all=[];
+  for(const c of COUNTRIES)for(const t of TIPOS){
+    const a=getAssignment(c,t);
+    for(const g of getEffectiveTasks(t,a.analyst)){
+      for(const task of g.tasks){
+        const name=task.name||task;
+        const ch=getCheck(c,t,g.etapa,name);
+        if(ch.status==='warn')all.push({country:c,tipo:t,etapa:g.etapa,task:name,ch});
+      }
+    }
+  }
+  return all;
+}
+
+function allChecksFlat(){
+  const rows=[];
+  for(const c of COUNTRIES)for(const t of TIPOS){
+    const a=getAssignment(c,t);
+    const an=analystById(a.analyst);
+    for(const g of getEffectiveTasks(t,a.analyst)){
+      for(const task of g.tasks){
+        const name=task.name||task;
+        const ch=getCheck(c,t,g.etapa,name);
+        const chAn=analystById(ch.analystId||a.analyst);
+        const resolvedAn=analystById(ch.resolvedBy);
+        rows.push({country:c,tipo:t,etapa:g.etapa,task:name,status:ch.status,datetime:ch.datetime||'',note:ch.note||'',analyst:chAn?chAn.name:(an?an.name:'—'),base:a.base||'',subflota:a.subflota||'',resolvedAt:ch.resolvedAt||'',resolvedBy:resolvedAn?resolvedAn.name:''});
+      }
+    }
+  }
+  return rows;
+}
+
+/* ════════════════════════════════════════
+   LOGIN
+════════════════════════════════════════ */
+let selectedAnalyst=null;
+const DEFAULT_PASSWORD='Programacion26';
+function getPassword(id){return (state.passwords&&state.passwords[id])||DEFAULT_PASSWORD;}
+function renderLogin(){
+  document.getElementById('analyst-grid').innerHTML=ANALYSTS.map(a=>`
+    <button class="analyst-btn" id="abtn-${a.id}" onclick="selectAnalyst('${a.id}')">
+      <div class="av" style="background:${a.bg};color:${a.color}">${a.initials}</div>
+      <div><div class="aname">${a.name}</div><div class="arole">${a.isManager?'Manager — Acceso total':a.isAdmin?'Admin — Acceso total':a.isViewOnly?'Solo lectura — Resumen general':'Programador'}</div></div>
+    </button>`).join('');
+}
+function selectAnalyst(id){
+  selectedAnalyst=id;
+  document.querySelectorAll('.analyst-btn').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('abtn-'+id).classList.add('selected');
+  const an=ANALYSTS.find(a=>a.id===id);
+  const pwdGroup=document.getElementById('login-password-group');
+  const pwdInput=document.getElementById('login-password');
+  pwdInput.value='';
+  document.getElementById('login-password-error').style.display='none';
+  if(an&&an.isViewOnly){
+    pwdGroup.style.display='none';
+  }else{
+    pwdGroup.style.display='';
+    document.getElementById('login-password-label').textContent=`Contraseña de ${an.short}`;
+    setTimeout(()=>pwdInput.focus(),50);
+  }
+  checkLoginReady();
+}
+function checkLoginReady(){
+  const an=ANALYSTS.find(a=>a.id===selectedAnalyst);
+  let ready=!!an;
+  if(an&&!an.isViewOnly){
+    ready=document.getElementById('login-password').value.length>0;
+  }
+  document.getElementById('btn-enter').classList.toggle('ready',ready);
+}
+function doLogin(){
+  if(!selectedAnalyst)return;
+  const candidate=ANALYSTS.find(a=>a.id===selectedAnalyst);
+  if(!candidate)return;
+  if(!candidate.isViewOnly){
+    const entered=document.getElementById('login-password').value;
+    if(!entered||entered!==getPassword(candidate.id)){
+      document.getElementById('login-password-error').style.display='block';
+      return;
+    }
+  }
+  currentUser=candidate;
+  document.getElementById('login-password').value='';
+  document.getElementById('login-password-error').style.display='none';
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  const av=document.getElementById('user-av');
+  av.textContent=currentUser.initials;av.style.background=currentUser.bg;av.style.color=currentUser.color;
+  document.getElementById('user-name-display').textContent=currentUser.short;
+  document.getElementById('btn-change-password').style.display=currentUser.isViewOnly?'none':'';
+  if(currentUser.isAdmin||currentUser.isManager)document.getElementById('tab-setup-btn').style.display='';
+  document.getElementById('tab-checklist-btn').style.display=currentUser.isViewOnly?'none':'';
+  document.getElementById('tab-report-btn').style.display=currentUser.isViewOnly?'none':'';
+  document.getElementById('rpt-analyst').innerHTML='<option value="">Todos los programadores</option>'+ANALYSTS.filter(a=>!a.isViewOnly).map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
+  if(!currentUser.isViewOnly)initChecklist();
+  renderOverview();updateProcessDisplay();
+}
+function doLogout(){
+  currentUser=null;selectedAnalyst=null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('tab-setup-btn').style.display='none';
+  document.getElementById('tab-checklist-btn').style.display='';
+  document.getElementById('tab-report-btn').style.display='';
+  document.getElementById('btn-change-password').style.display='none';
+  document.querySelectorAll('.analyst-btn').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('btn-enter').classList.remove('ready');
+  showTab('overview',document.querySelector('.nav-tab'));
+}
+
+/* ════════════════════════════════════════
+   TABS / SETUP PANELS
+════════════════════════════════════════ */
+function showTab(id,el){
+  // Block setup access for non-admin/non-manager
+  if(id==='setup'&&currentUser&&!currentUser.isAdmin&&!currentUser.isManager){
+    toast('Acceso restringido a Admin y Manager');return;
+  }
+  // Block all but overview for view-only profiles
+  if(id!=='overview'&&currentUser&&currentUser.isViewOnly){
+    toast('Este perfil solo tiene acceso al Resumen general');return;
+  }
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('sec-'+id).classList.add('active');
+  if(el)el.classList.add('active');
+  if(id==='overview')renderOverview();
+  if(id==='checklist')renderChecklist();
+  if(id==='setup')renderSetup();
+  if(id==='report')renderReport();
+}
+function showSetupPanel(id,el){
+  document.querySelectorAll('.setup-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.setup-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('sp-'+id).classList.add('active');
+  if(el)el.classList.add('active');
+  if(id==='plantilla')renderTemplateEditor();
+  if(id==='perfiles')renderProfilesPanel();
+}
+
+/* ════════════════════════════════════════
+   OVERVIEW
+════════════════════════════════════════ */
+function deadlineChip(){
+  if(!state.deadline)return '<span class="deadline-chip dl-none">Sin definir</span>';
+  const d=new Date(state.deadline),today=new Date();
+  const diff=Math.ceil((d-today)/86400000);
+  if(diff<0)return `<span class="deadline-chip dl-late">Vencido hace ${Math.abs(diff)} días</span>`;
+  if(diff<=3)return `<span class="deadline-chip dl-warn">${diff} días restantes</span>`;
+  return `<span class="deadline-chip dl-ok">${diff} días para publicación</span>`;
+}
+function formatDate(s){if(!s)return '—';const d=new Date(s);if(isNaN(d))return s;return d.toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'});}
+function avHtml(an,size=20,fs=8){return an?`<div class="av-sm" style="width:${size}px;height:${size}px;background:${an.bg};color:${an.color};font-size:${fs}px">${an.initials}</div>`:'';}
+
+function renderOverview(){
+  // Update process title
+  const procTitle=document.getElementById('overview-process-title');
+  if(procTitle)procTitle.textContent=state.processName||'Sin nombre de proceso';
+
+  document.getElementById('deadline-bar-container').innerHTML=`
+    <div class="deadline-bar" style="margin-bottom:0">
+      <div><div class="dl-label">Deadline de publicación</div><div class="dl-date">${state.deadline?formatDate(state.deadline):'No configurado'}</div></div>
+      ${deadlineChip()}
+    </div>`;
+  let totalDone=0,totalAll=0;
+  for(const c of COUNTRIES)for(const t of TIPOS){totalDone+=doneTasks(c,t);totalAll+=totalTasks(t);}
+  const warns=allWarns();const activeWarns=warns.filter(w=>!w.ch.resolvedAt).length;
+  const pct=totalAll?Math.round(totalDone/totalAll*100):0;
+  const dateRisk={late:0,warn:0,ok:0,none:0};
+  for(const c of COUNTRIES)for(const t of TIPOS){
+    const est=getEstimate(c,t);
+    dateRisk[estimateRiskLevel(est?est.date:'')]++;
+  }
+  document.getElementById('metrics-row').innerHTML=`
+    <div class="metric-card"><div class="ml">Avance global</div><div class="mv" style="color:${pct>=80?'#18a76b':pct>=40?'#d97706':'#dc3545'}">${pct}%</div><div class="ms">del total de tareas</div></div>
+    <div class="metric-card"><div class="ml">Tareas completadas</div><div class="mv">${totalDone}</div><div class="ms">de ${totalAll} totales</div></div>
+    <div class="metric-card clickable" onclick="toggleWarnPanel()">
+      <div class="ml">⚠ Advertencias abiertas</div>
+      <div class="mv" style="color:${activeWarns?'#d97706':'#18a76b'}">${activeWarns}</div>
+      <div class="ms">${warns.length} total · clic para ver</div>
+    </div>
+    <div class="metric-card"><div class="ml">Países / Roles</div><div class="mv">${COUNTRIES.length}</div><div class="ms">× 2 tipos = 8 rols</div></div>
+    <div class="metric-card clickable" onclick="showTab('checklist',document.getElementById('tab-checklist-btn'))">
+      <div class="ml">📅 Riesgo de fecha</div>
+      <div class="mv" style="color:${dateRisk.late?'#dc3545':dateRisk.warn?'#d97706':'#18a76b'}">${dateRisk.late+dateRisk.warn}</div>
+      <div class="ms">${dateRisk.late} atrasado(s) · ${dateRisk.warn} justo(s) · ${dateRisk.none} sin estimar</div>
+    </div>`;
+  document.getElementById('big-progress').innerHTML=`
+    <div class="big-progress-header"><h2>Progreso total de confección</h2><div class="pct" style="color:${pct>=80?'#18a76b':pct>=40?'#d97706':'#dc3545'}">${pct}%</div></div>
+    <div class="prog-track"><div class="prog-fill" style="width:${pct}%;background:${pct>=80?'#18a76b':pct>=40?'#d97706':'#dc3545'}"></div></div>`;
+  renderWarnPanel(warns);
+  document.getElementById('country-grid').innerHTML=COUNTRIES.map(c=>{
+    const cd=doneTasks(c,'Cabina'),ct=totalTasks('Cabina');
+    const md=doneTasks(c,'Mando'),mt=totalTasks('Mando');
+    const cp=ct?Math.round(cd/ct*100):0,mp=mt?Math.round(md/mt*100):0;
+    const total=Math.round((cd+md)/(ct+mt)*100);
+    const aM=getAssignment(c,'Mando'),anM=analystById(aM.analyst);
+    const aC=getAssignment(c,'Cabina'),anC=analystById(aC.analyst);
+    const isOwn=currentUser&&(aM.analyst===currentUser.id||aC.analyst===currentUser.id);
+    return `<div class="country-card${isOwn?' own-highlight':''}">
+      <div class="country-card-hdr">
+        <div class="country-flag-name">${FLAGS[c]} ${c}${isOwn?'<span class="own-badge">Mi rol</span>':''}</div>
+        <div class="country-pct" style="color:${total>=80?'#18a76b':total>=40?'#d97706':'#dc3545'}">${total}%</div>
+      </div>
+      <div class="rol-line"><span class="rol-pill pill-mando">Mando</span><div class="rol-track"><div class="rol-fill" style="width:${mp}%;background:#2f7de0"></div></div><span class="rol-pct">${mp}%</span><span class="rol-analyst">${anM?anM.name:'Sin asignar'}</span>${estimateBadgeHtml(c,'Mando')}</div>
+      <div class="rol-line"><span class="rol-pill pill-cabina">Cabina</span><div class="rol-track"><div class="rol-fill" style="width:${cp}%;background:#18a76b"></div></div><span class="rol-pct">${cp}%</span><span class="rol-analyst">${anC?anC.name:'Sin asignar'}</span>${estimateBadgeHtml(c,'Cabina')}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('analysts-overview').innerHTML=ANALYSTS.filter(an=>!an.isAdmin&&!an.isManager&&!an.isViewOnly).map(an=>{
+    let done=0,tot=0;const tags=[];
+    for(const c of COUNTRIES)for(const t of TIPOS){
+      const a=getAssignment(c,t);
+      if(a.analyst===an.id){
+        const d=doneTasksFor(c,t,an.id),tt=totalTasksFor(t,an.id);
+        done+=d;tot+=tt;
+        tags.push({c,t,pct:tt?Math.round(d/tt*100):0});
+      }
+    }
+    const p=tot?Math.round(done/tot*100):0;
+    return `<div class="analyst-overview-card">
+      <div class="aoc-header">
+        <div class="av-sm" style="width:34px;height:34px;background:${an.bg};color:${an.color};font-size:11px;font-weight:700;flex-shrink:0">${an.initials}</div>
+        <div><div class="aoc-name">${an.name}</div><div class="aoc-sub">${p}% completado · ${tags.length} rol(es)</div></div>
+      </div>
+      <div class="aoc-prog"><div class="aoc-prog-fill" style="width:${p}%;background:${an.color}"></div></div>
+      <div class="aoc-tags">${tags.length?tags.map(tg=>`<span class="aoc-tag" style="background:${an.bg};color:${an.color}">${FLAGS[tg.c]} ${tg.t} <strong>${tg.pct}%</strong></span>`).join(''):'<span style="font-size:11px;color:var(--text3)">Sin asignaciones</span>'}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderWarnPanel(warns){
+  const body=document.getElementById('warn-panel-body');
+  if(!warns||!warns.length){body.innerHTML='<p style="font-size:13px;color:var(--text2);text-align:center;padding:1rem 0">No hay advertencias registradas.</p>';return;}
+  body.innerHTML=warns.map((w,idx)=>{
+    const a=getAssignment(w.country,w.tipo);
+    const an=analystById(w.ch.analystId||a.analyst);
+    const resolved=!!w.ch.resolvedAt;
+    const resolvedAn=analystById(w.ch.resolvedBy);
+    const canResolve=currentUser&&(currentUser.isAdmin||currentUser.isManager||a.analyst===currentUser.id);
+    return `<div class="warn-item" style="${resolved?'opacity:.7':''}">
+      <div class="warn-item-hdr">
+        <span class="warn-tag warn-country-tag">${FLAGS[w.country]} ${w.country}</span>
+        <span class="warn-tag warn-tipo-tag">${w.tipo}</span>
+        ${a.subflota?`<span class="warn-tag warn-subflota-tag">${a.subflota}</span>`:''}
+        ${a.base?`<span class="warn-tag" style="background:var(--bg2);color:var(--text2)">${a.base}</span>`:''}
+        ${an?`<span class="warn-analyst-tag">${avHtml(an,18,7)} ${an.name}</span>`:''}
+      </div>
+      <div class="warn-task-name">⚠ ${w.task}</div>
+      ${w.ch.note?`<div class="warn-note">${w.ch.note}</div>`:`<div class="warn-no-note">Sin nota adicional</div>`}
+      <div class="warn-item-footer">
+        <span class="warn-item-dates">${w.ch.datetime?'Registrado: '+w.ch.datetime:''}</span>
+        ${resolved
+          ?`<span class="resolved-badge">✓ Resuelto ${w.ch.resolvedAt}${resolvedAn?' por '+resolvedAn.short:''}</span>${canResolve?`<button class="btn-reopen" onclick="reopenWarn('${encodeURIComponent(JSON.stringify([w.country,w.tipo,w.etapa,w.task]))}')">Reabrir</button>`:''}` 
+          :`${canResolve?`<button class="btn-resolve" onclick="resolveWarn('${encodeURIComponent(JSON.stringify([w.country,w.tipo,w.etapa,w.task]))}')">✓ Marcar como resuelto</button>`:'<span style="font-size:11px;color:var(--text3)">Pendiente de resolución</span>'}`
+        }
+      </div>
+    </div>`;
+  }).join('');
+}
+function toggleWarnPanel(){const p=document.getElementById('warn-panel');p.classList.toggle('open');if(p.classList.contains('open'))p.scrollIntoView({behavior:'smooth',block:'nearest'});}
+function closeWarnPanel(){document.getElementById('warn-panel').classList.remove('open');}
+function resolveWarn(safeC){const [c,t,e,task]=JSON.parse(decodeURIComponent(safeC));setCheck(c,t,e,task,{resolvedAt:nowStr(),resolvedBy:currentUser.id});renderOverview();renderChecklist();toast('Advertencia marcada como resuelta ✓');}
+function reopenWarn(safeC){const [c,t,e,task]=JSON.parse(decodeURIComponent(safeC));setCheck(c,t,e,task,{resolvedAt:'',resolvedBy:''});renderOverview();renderChecklist();toast('Advertencia reabierta');}
+
+/* ════════════════════════════════════════
+   CHECKLIST
+════════════════════════════════════════ */
+function initChecklist(){
+  const sel=document.getElementById('cl-country');sel.innerHTML='';
+  const own=[],other=[];
+  // Find which countries AND tipo belong to current user
+  let firstOwnCountry=null, firstOwnTipo=null;
+  for(const c of COUNTRIES){
+    const isOwn=TIPOS.some(t=>getAssignment(c,t).analyst===currentUser.id);
+    (isOwn?own:other).push(c);
+    if(isOwn&&!firstOwnCountry){
+      firstOwnCountry=c;
+      // Find the specific tipo assigned to this user in this country
+      for(const t of TIPOS){
+        if(getAssignment(c,t).analyst===currentUser.id){firstOwnTipo=t;break;}
+      }
+    }
+  }
+  [...own,...other].forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=FLAGS[c]+' '+c+(own.includes(c)?' ★':'');sel.appendChild(o);});
+  // Set country selector to first owned country
+  if(firstOwnCountry)sel.value=firstOwnCountry;
+  // Set tipo selector to the exact tipo assigned to this user (not always Mando)
+  const tipoSel=document.getElementById('cl-tipo');
+  if(firstOwnTipo)tipoSel.value=firstOwnTipo;
+  renderChecklist();
+}
+
+function renderChecklist(){
+  const country=document.getElementById('cl-country').value;
+  const tipo=document.getElementById('cl-tipo').value;
+  const a=getAssignment(country,tipo);
+  console.log('[Checklist] country='+country+' tipo='+tipo+' assignment='+JSON.stringify(a)+' currentUser='+currentUser?.id);
+  const an=analystById(a.analyst);
+  const isOwn=currentUser&&a.analyst===currentUser.id;
+  const canEdit=currentUser&&(currentUser.isAdmin||currentUser.isManager||isOwn);
+  const chip=document.getElementById('cl-info-chip');
+  if(an)chip.innerHTML=`${avHtml(an,20,8)} ${an.name} · ${FLAGS[country]} ${country}${isOwn?' <span style="color:var(--blue);font-weight:700">✓ Tu rol</span>':''}`;
+  else chip.innerHTML='<span style="color:var(--text3)">Sin asignar — ve a Configuración</span>';
+  const body=document.getElementById('checklist-body');body.innerHTML='';
+  if(!canEdit)body.insertAdjacentHTML('beforeend',`<div style="padding:12px 16px;background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius);font-size:13px;color:var(--amber);margin-bottom:1rem">Solo puedes editar los roles asignados a ti. Modo lectura.</div>`);
+  renderEstimateCard(country,tipo,a,canEdit);
+  const effectiveTasks=getEffectiveTasks(tipo, a.analyst);
+  for(const group of effectiveTasks){
+    const doneG=group.tasks.filter(task=>{const name=task.name||task;return isEffectiveDone(getCheck(country,tipo,group.etapa,name));}).length;
+    const pctG=Math.round(doneG/group.tasks.length*100);
+    const sec=document.createElement('div');sec.className='etapa-section';
+    const tasksHtml=group.tasks.map(task=>{
+      const name=task.name||task;
+      const isCustom=typeof task==='object'&&task.custom;
+      const ch=getCheck(country,tipo,group.etapa,name);
+      const safeC=encodeURIComponent(JSON.stringify([country,tipo,group.etapa,name]));
+      const isDone=ch.status==='done',isWarn=ch.status==='warn',isNA=ch.status==='na';
+      let scopeBadge='';
+      if(isCustom){
+        if(task.scope==='global')scopeBadge='<span class="custom-badge badge-global">Global</span>';
+        else if(task.scope==='permanent')scopeBadge='<span class="custom-badge badge-permanent">Permanente</span>';
+        else scopeBadge='<span class="custom-badge badge-personal">Personal</span>';
+      }
+      return `<div class="task-item${isEffectiveDone(ch)?' is-done':''}">
+        <div class="tri-toggle" style="${!canEdit?'opacity:.45;pointer-events:none':''}">
+          <button class="tri-btn${isDone?' active-done':''}" onclick="setStatus('${safeC}','done')">✓</button>
+          <button class="tri-btn${isWarn?' active-warn':''}" onclick="setStatus('${safeC}','warn')">!</button>
+          <button class="tri-btn${isNA?' active-na':''}" title="No aplica" onclick="setStatus('${safeC}','na')">N/A</button>
+        </div>
+        <span class="task-name-txt${isDone?' done':isNA?' na':''}">${name}${scopeBadge}${isNA?' <span class="na-badge">N/A</span>':''}</span>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          ${isWarn&&ch.resolvedAt?`<span style="font-size:11px;color:var(--green);font-weight:600">✓ Resuelto</span>`:''}
+          ${isWarn&&ch.note?`<span class="task-note-preview" onclick="openNoteEdit('${safeC}')">📋 ${ch.note.length>28?ch.note.slice(0,28)+'…':ch.note}</span>`:''}
+          ${isWarn&&!ch.note&&canEdit?`<button class="warn-btn" onclick="openNoteEdit('${safeC}')">+ nota</button>`:''}
+          ${isWarn&&ch.note&&canEdit?`<button class="warn-btn active" onclick="openNoteEdit('${safeC}')">editar nota</button>`:''}
+          <span class="task-date-txt">${ch.datetime||''}</span>
+        </div>
+      </div>`;
+    }).join('');
+    sec.innerHTML=`<div class="etapa-header" style="background:${group.color}18;border-left:3px solid ${group.color}"><span class="etapa-title-txt" style="color:${group.color}">${group.etapa}</span><span class="etapa-progress-txt" style="color:${group.color}">${doneG}/${group.tasks.length} — ${pctG}%</span></div><div class="task-list">${tasksHtml}</div>`;
+    body.appendChild(sec);
+  }
+}
+
+function renderEstimateCard(country,tipo,a,canEdit){
+  const el=document.getElementById('estimate-card');
+  if(!el)return;
+  const est=getEstimate(country,tipo);
+  const risk=estimateRiskLevel(est?est.date:'');
+  const riskColor={none:'var(--text3)',ok:'var(--green)',warn:'var(--amber)',late:'var(--red)'}[risk];
+  const riskLabel={none:'Sin estimar todavía',ok:'A tiempo para el deadline',warn:'Muy justo respecto al deadline',late:'⚠ Después del deadline de publicación'}[risk];
+  const estAn=est?analystById(est.analystId):null;
+  const hist=estimateHistoryFor(country,tipo);
+  const histHtml=hist.length?hist.slice(0,6).map(h=>{
+    const an=analystById(h.analystId);
+    return `<div style="font-size:11px;color:var(--text2);padding:3px 0;display:flex;gap:6px;align-items:center">
+      <span style="font-weight:700;color:var(--text)">${formatDate(h.date)}</span>
+      <span style="color:var(--text3)">— registrado ${h.createdAt||''}${an?' por '+an.short:''}</span>
+    </div>`;
+  }).join(''):'<div style="font-size:11px;color:var(--text3);font-style:italic">Aún no hay historial de estimaciones para este rol.</div>';
+  el.innerHTML=`
+    <div class="setup-card" style="margin-bottom:0">
+      <h3>📅 Estimación de fecha de publicación — ${FLAGS[country]||''} ${country} · ${tipo}</h3>
+      <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:8px">
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Fecha en que estimas tener este rol publicado</label>
+          <input type="date" class="form-input" style="max-width:190px" id="estimate-date-input" value="${est?est.date:''}" ${!canEdit?'disabled':''} onchange="setEstimate('${country}','${tipo}',this.value)">
+        </div>
+        <div style="font-size:12px;font-weight:700;color:${riskColor};padding:8px 0 4px">${riskLabel}${state.deadline?' <span style="color:var(--text3);font-weight:500">(deadline: '+formatDate(state.deadline)+')</span>':''}</div>
+      </div>
+      ${est?`<div style="font-size:11px;color:var(--text3);margin-bottom:8px">Última actualización: ${est.updatedAt}${estAn?' por '+estAn.short:''}</div>`:''}
+      <div style="border-top:1px solid var(--border);padding-top:8px">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Historial de seguimiento</div>
+        ${histHtml}
+      </div>
+    </div>`;
+}
+
+function setStatus(safeC,newStatus){
+  const [country,tipo,etapa,task]=JSON.parse(decodeURIComponent(safeC));
+  const a=getAssignment(country,tipo);
+  const canEdit=currentUser&&(currentUser.isAdmin||currentUser.isManager||a.analyst===currentUser.id);
+  if(!canEdit){toast('No tienes permiso para editar este rol');return;}
+  const ch=getCheck(country,tipo,etapa,task);
+  const wasDone=isEffectiveDone(ch);
+  const finalStatus=ch.status===newStatus?'pending':newStatus;
+  setCheck(country,tipo,etapa,task,{status:finalStatus,datetime:finalStatus==='pending'?'':nowStr(),note:finalStatus==='warn'?ch.note:'',analystId:finalStatus!=='pending'?currentUser.id:'',resolvedAt:'',resolvedBy:''});
+  const nowDone=isEffectiveDone({status:finalStatus});
+  if(finalStatus==='warn')openNoteEdit(safeC);
+  else{renderChecklist();renderOverview();}
+  // Si esta acción completó la última tarea pendiente del rol propio, felicitar al programador
+  if(!wasDone&&nowDone&&currentUser&&a.analyst===currentUser.id){
+    const totalT=totalTasksFor(tipo,a.analyst);
+    const doneT=doneTasksFor(country,tipo,a.analyst);
+    if(totalT>0&&doneT===totalT)showCongratsModal(country,tipo);
+  }
+}
+
+function showCongratsModal(country,tipo){
+  const txt=document.getElementById('congrats-text');
+  if(txt)txt.textContent=`Completaste el 100% del checklist de ${tipo} para ${FLAGS[country]||''} ${country}. ¡Excelente trabajo!`;
+  const m=document.getElementById('congrats-modal');
+  if(m)m.classList.add('open');
+}
+function closeCongratsModal(){document.getElementById('congrats-modal').classList.remove('open');}
+
+/* ════════════════════════════════════════
+   NOTE MODAL
+════════════════════════════════════════ */
+let _modalCtx=null;
+function openNoteEdit(safeC){
+  const [country,tipo,etapa,task]=JSON.parse(decodeURIComponent(safeC));
+  _modalCtx={country,tipo,etapa,task};
+  const ch=getCheck(country,tipo,etapa,task);
+  document.getElementById('modal-title').textContent='Nota de advertencia';
+  document.getElementById('modal-sub').textContent=`${FLAGS[country]} ${country} — ${tipo} · ${task}`;
+  document.getElementById('modal-textarea').value=ch.note||'';
+  document.getElementById('modal-textarea').disabled=false;
+  document.getElementById('modal-save-btn').style.display='';
+  document.getElementById('note-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('modal-textarea').focus(),80);
+}
+function closeNoteModal(){document.getElementById('note-modal').classList.remove('open');_modalCtx=null;renderChecklist();renderOverview();}
+function saveNote(){
+  if(!_modalCtx)return;
+  const {country,tipo,etapa,task}=_modalCtx;
+  const note=document.getElementById('modal-textarea').value.trim();
+  setCheck(country,tipo,etapa,task,{note});
+  closeNoteModal();toast('Nota guardada ✓');
+}
+document.getElementById('note-modal').addEventListener('click',function(e){if(e.target===this)closeNoteModal();});
+
+/* ════════════════════════════════════════
+   TEMPLATE EDITOR
+════════════════════════════════════════ */
+function renderTemplateEditor(){
+  const tipo=document.getElementById('tpl-tipo').value;
+  const deleted=new Set(state.deletedBaseTasks[tipo]||[]);
+  const body=document.getElementById('template-editor-body');
+  body.innerHTML='';
+  for(const group of BASE_TASKS[tipo]){
+    const customForGroup=(state.customTasks[tipo]||[]).filter(ct=>ct.etapa===group.etapa);
+    const activeBase=group.tasks.filter(t=>!deleted.has(t)).length;
+    const activeCustom=customForGroup.filter(ct=>!ct.deleted).length;
+    const totalActive=activeBase+activeCustom;
+    const block=document.createElement('div');block.className='tpl-etapa-block';
+    const taskRows=group.tasks.map(task=>{
+      const isDel=deleted.has(task);
+      return `<div class="tpl-task-row${isDel?' deleted':''}">
+        <span class="tpl-task-name">${task}</span>
+        <div class="tpl-task-meta">
+          <span style="font-size:10px;padding:1px 6px;border-radius:99px;background:var(--bg2);color:var(--text3)">Base</span>
+          ${isDel
+            ?`<button class="btn-restore-task" onclick="restoreBaseTask('${tipo}','${task.replace(/'/g,"\\'")}')">↺ Restaurar</button>`
+            :`<button class="btn-del-task" onclick="deleteBaseTask('${tipo}','${task.replace(/'/g,"\\'")}')">✕ Quitar</button>`
+          }
+        </div>
+      </div>`;
+    }).join('');
+    const customRows=customForGroup.map(ct=>{
+      const scopeLabel={global:'Global',personal:'Personal',permanent:'Permanente'}[ct.scope]||ct.scope;
+      const scopeColor={global:'var(--blue)',personal:'var(--purple)',permanent:'var(--green)'}[ct.scope]||'var(--text2)';
+      const scopeBg={global:'var(--blue-bg)',personal:'var(--purple-bg)',permanent:'var(--green-bg)'}[ct.scope]||'var(--bg2)';
+      const createdAn=analystById(ct.createdBy);
+      const analystNames=ct.analysts&&ct.analysts.length?ct.analysts.map(id=>analystById(id)?.short||id).join(', '):'';
+      return `<div class="tpl-task-row${ct.deleted?' deleted':''}">
+        <span class="tpl-task-name">${ct.name}</span>
+        <div class="tpl-task-meta">
+          <span style="font-size:10px;padding:1px 7px;border-radius:99px;background:${scopeBg};color:${scopeColor};font-weight:700">${scopeLabel}${analystNames?' · '+analystNames:''}</span>
+          ${createdAn?`<span style="font-size:10px;color:var(--text3)">por ${createdAn.short} · ${ct.createdAt||''}</span>`:''}
+          ${ct.deleted
+            ?`<button class="btn-restore-task" onclick="restoreCustomTask('${tipo}','${ct.id}')">↺ Restaurar</button>`
+            :`<button class="btn-del-task" onclick="deleteCustomTask('${tipo}','${ct.id}')">✕ Quitar</button>`
+          }
+        </div>
+      </div>`;
+    }).join('');
+    block.innerHTML=`
+      <div class="tpl-etapa-hdr" style="border-left:3px solid ${group.color}">
+        <span class="tpl-etapa-name" style="color:${group.color}">${group.etapa}</span>
+        <span class="tpl-etapa-count">${totalActive} tareas activas</span>
+      </div>
+      ${taskRows}${customRows}`;
+    body.appendChild(block);
+  }
+}
+
+async function deleteBaseTask(tipo,task){
+  if(!state.deletedBaseTasks[tipo])state.deletedBaseTasks[tipo]=[];
+  if(!state.deletedBaseTasks[tipo].includes(task))state.deletedBaseTasks[tipo].push(task);
+  const id=`dbt_${tipo}_${btoa(task).replace(/=/g,'')}`;
+  await _sb.from('deleted_base_tasks').upsert({id,tipo,task_name:task},{onConflict:'id'});
+  renderTemplateEditor();toast('Tarea quitada de la plantilla');
+}
+async function restoreBaseTask(tipo,task){
+  state.deletedBaseTasks[tipo]=(state.deletedBaseTasks[tipo]||[]).filter(t=>t!==task);
+  const id=`dbt_${tipo}_${btoa(task).replace(/=/g,'')}`;
+  await _sb.from('deleted_base_tasks').delete().eq('id',id);
+  renderTemplateEditor();toast('Tarea restaurada ✓');
+}
+async function deleteCustomTask(tipo,id){
+  const ct=(state.customTasks[tipo]||[]).find(c=>c.id===id);
+  if(ct){ct.deleted=true;await _sb.from('custom_tasks').update({deleted:true}).eq('id',id);renderTemplateEditor();toast('Tarea quitada');}
+}
+async function restoreCustomTask(tipo,id){
+  const ct=(state.customTasks[tipo]||[]).find(c=>c.id===id);
+  if(ct){ct.deleted=false;await _sb.from('custom_tasks').update({deleted:false}).eq('id',id);renderTemplateEditor();toast('Tarea restaurada ✓');}
+}
+async function resetTemplate(){
+  if(!confirm('¿Restaurar la plantilla original? Se eliminarán TODAS las tareas personalizadas y se recuperarán las tareas base eliminadas.'))return;
+  state.deletedBaseTasks={Mando:[],Cabina:[]};
+  state.customTasks={Mando:[],Cabina:[]};
+  await _sb.from('deleted_base_tasks').delete().neq('id','__none__');
+  await _sb.from('custom_tasks').delete().neq('id','__none__');
+  renderTemplateEditor();toast('Plantilla restaurada al original ✓');
+}
+
+/* ADD TASK MODAL */
+let _newTaskScope='global';
+let _newTaskAnalysts=[];
+
+function openAddTaskModal(){
+  const tipo=document.getElementById('tpl-tipo').value;
+  // populate etapa select
+  const etapaSel=document.getElementById('new-task-etapa');
+  etapaSel.innerHTML=BASE_TASKS[tipo].map(g=>`<option value="${g.etapa}">${g.etapa}</option>`).join('');
+  // analyst pills
+  const multi=document.getElementById('analyst-multi-pills');
+  multi.innerHTML=ANALYSTS.filter(an=>!an.isViewOnly).map(an=>`<button class="analyst-pill" data-id="${an.id}" style="border-color:${an.color}" onclick="toggleAnalystPill(this,'${an.id}')">${an.name}</button>`).join('');
+  _newTaskScope='global';_newTaskAnalysts=[];
+  document.getElementById('new-task-name').value='';
+  updateScopePills();
+  document.getElementById('add-task-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('new-task-name').focus(),80);
+}
+function closeAddTaskModal(){document.getElementById('add-task-modal').classList.remove('open');}
+document.getElementById('add-task-modal').addEventListener('click',function(e){if(e.target===this)closeAddTaskModal();});
+
+/* ═══ PASSWORD CHANGE ═══ */
+function openPasswordModal(){
+  if(!currentUser||currentUser.isViewOnly)return;
+  document.getElementById('pwd-current').value='';
+  document.getElementById('pwd-new').value='';
+  document.getElementById('pwd-confirm').value='';
+  document.getElementById('pwd-error').style.display='none';
+  document.getElementById('password-modal').classList.add('open');
+}
+function closePasswordModal(){document.getElementById('password-modal').classList.remove('open');}
+document.getElementById('password-modal').addEventListener('click',function(e){if(e.target===this)closePasswordModal();});
+document.getElementById('congrats-modal').addEventListener('click',function(e){if(e.target===this)closeCongratsModal();});
+async function submitPasswordChange(){
+  if(!currentUser)return;
+  const cur=document.getElementById('pwd-current').value;
+  const next=document.getElementById('pwd-new').value;
+  const confirm2=document.getElementById('pwd-confirm').value;
+  const errEl=document.getElementById('pwd-error');
+  const showErr=msg=>{errEl.textContent=msg;errEl.style.display='block';};
+  if(cur!==getPassword(currentUser.id)){showErr('La contraseña actual no es correcta.');return;}
+  if(!next||next.length<4){showErr('La nueva contraseña debe tener al menos 4 caracteres.');return;}
+  if(next!==confirm2){showErr('Las contraseñas nuevas no coinciden.');return;}
+  if(!state.passwords)state.passwords={};
+  state.passwords[currentUser.id]=next;
+  await saveConfig('pwd_'+currentUser.id,next);
+  closePasswordModal();
+  toast('Contraseña actualizada ✓');
+}
+
+/* ═══ PROFILE MANAGEMENT (Admin/Manager only) ═══ */
+const PROFILE_COLORS=[
+  {color:'#2f7de0',bg:'rgba(47,125,224,0.15)'},{color:'#18a76b',bg:'rgba(24,167,107,0.15)'},
+  {color:'#d97706',bg:'rgba(217,119,6,0.15)'}, {color:'#dc3545',bg:'rgba(220,53,69,0.13)'},
+  {color:'#7c3aed',bg:'rgba(124,58,237,0.13)'},{color:'#b45309',bg:'rgba(180,83,9,0.13)'},
+  {color:'#0d9488',bg:'rgba(13,148,136,0.13)'},{color:'#1a1d27',bg:'rgba(26,29,39,0.12)'},
+];
+function slugifyName(str){
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'').slice(0,20);
+}
+function isCustomProfile(id){return (state.customAnalysts||[]).some(a=>a.id===id);}
+function renderProfilesPanel(){
+  if(!currentUser||(!currentUser.isAdmin&&!currentUser.isManager))return;
+  document.getElementById('profiles-list').innerHTML=ANALYSTS.map(a=>{
+    const roleLabel=a.isManager?'Manager — Acceso total':a.isAdmin?'Admin — Acceso total':a.isViewOnly?'Vista general — solo lectura':'Programador';
+    const pwdActions=a.isViewOnly
+      ?`<span style="font-size:11px;color:var(--text3)">Sin contraseña</span>`
+      :`<button class="btn-reset-pwd" onclick="setCustomPassword('${a.id}')">🔑 Nueva contraseña</button>
+        <button class="btn-reset-pwd" onclick="resetProfilePassword('${a.id}')">↺ Restablecer</button>`;
+    const delBtn=a.id===currentUser.id?'':`<button class="btn-delete-profile" onclick="deleteProfile('${a.id}')">Eliminar</button>`;
+    return `<div class="profile-row">
+      <div class="av" style="background:${a.bg};color:${a.color}">${a.initials}</div>
+      <div><div class="pname">${a.name}</div><div class="prole">${roleLabel}</div></div>
+      <div class="pactions">${pwdActions}${delBtn}</div>
+    </div>`;
+  }).join('');
+  const deletedIds=new Set(state.deletedBaseAnalysts||[]);
+  const deletedProfiles=BASE_ANALYSTS.filter(a=>deletedIds.has(a.id));
+  const delSection=document.getElementById('deleted-profiles-section');
+  if(deletedProfiles.length===0){
+    delSection.style.display='none';
+  }else{
+    delSection.style.display='';
+    document.getElementById('deleted-profiles-list').innerHTML=deletedProfiles.map(a=>`
+      <div class="profile-row">
+        <div class="av" style="background:${a.bg};color:${a.color};opacity:.5">${a.initials}</div>
+        <div><div class="pname" style="color:var(--text2)">${a.name}</div><div class="prole">Perfil eliminado</div></div>
+        <div class="pactions"><button class="btn-reset-pwd" onclick="restoreBaseAnalyst('${a.id}')">↺ Restaurar</button></div>
+      </div>`).join('');
+  }
+}
+async function resetProfilePassword(id){
+  if(!currentUser||(!currentUser.isAdmin&&!currentUser.isManager))return;
+  const an=ANALYSTS.find(a=>a.id===id);
+  if(!an||an.isViewOnly)return;
+  if(!confirm(`¿Restablecer la contraseña de ${an.name} a la contraseña por defecto (${DEFAULT_PASSWORD})?`))return;
+  if(!state.passwords)state.passwords={};
+  state.passwords[id]=DEFAULT_PASSWORD;
+  await saveConfig('pwd_'+id,DEFAULT_PASSWORD);
+  toast(`Contraseña de ${an.short} restablecida ✓`);
+}
+async function setCustomPassword(id){
+  if(!currentUser||(!currentUser.isAdmin&&!currentUser.isManager))return;
+  const an=ANALYSTS.find(a=>a.id===id);
+  if(!an||an.isViewOnly)return;
+  const next=prompt(`Nueva contraseña para ${an.name}:`);
+  if(next===null)return;
+  if(next.length<4){toast('La contraseña debe tener al menos 4 caracteres');return;}
+  if(!state.passwords)state.passwords={};
+  state.passwords[id]=next;
+  await saveConfig('pwd_'+id,next);
+  toast(`Contraseña de ${an.short} actualizada ✓`);
+}
+async function createNewProfile(){
+  if(!currentUser||(!currentUser.isAdmin&&!currentUser.isManager))return;
+  const nameEl=document.getElementById('np-name');
+  const roleEl=document.getElementById('np-role');
+  const errEl=document.getElementById('np-error');
+  errEl.style.display='none';
+  const name=nameEl.value.trim();
+  if(!name){errEl.textContent='Ingresa un nombre.';errEl.style.display='block';return;}
+  if(ANALYSTS.some(a=>a.name.toLowerCase()===name.toLowerCase())){errEl.textContent='Ya existe un perfil con ese nombre.';errEl.style.display='block';return;}
+  const baseId=slugifyName(name)||'perfil';
+  let id=baseId,n=2;
+  while(ANALYSTS.some(a=>a.id===id)){id=baseId+n;n++;}
+  const parts=name.split(/\s+/);
+  const initials=parts.length>1?(parts[0][0]+parts[1][0]).toUpperCase():(parts[0][0]+(parts[0][1]||'')).toUpperCase();
+  const palette=PROFILE_COLORS[(state.customAnalysts||[]).length%PROFILE_COLORS.length];
+  const isViewOnly=roleEl.value==='vista';
+  const newProfile={id,name,short:parts[0],initials,color:palette.color,bg:palette.bg};
+  if(isViewOnly)newProfile.isViewOnly=true;
+  if(!state.customAnalysts)state.customAnalysts=[];
+  state.customAnalysts.push(newProfile);
+  rebuildAnalysts();
+  await saveConfig('custom_analysts',JSON.stringify(state.customAnalysts));
+  nameEl.value='';
+  renderProfilesPanel();renderLogin();renderSetup();renderOverview();
+  toast(`Perfil "${name}" creado ✓`+(isViewOnly?'':` — contraseña inicial: ${DEFAULT_PASSWORD}`));
+}
+async function deleteProfile(id){
+  if(!currentUser||(!currentUser.isAdmin&&!currentUser.isManager))return;
+  const an=ANALYSTS.find(a=>a.id===id);
+  if(!an)return;
+  if(currentUser.id===id){toast('No puedes eliminar tu propio perfil mientras estás conectado.');return;}
+  if(an.isAdmin||an.isManager){
+    const remainingAdmins=ANALYSTS.filter(a=>a.id!==id&&(a.isAdmin||a.isManager));
+    if(remainingAdmins.length===0){toast('No puedes eliminar el último perfil con acceso total (Admin/Manager).');return;}
+  }
+  if(!confirm(`¿Eliminar el perfil "${an.name}"? Podrás restaurarlo después si es uno de los perfiles originales del equipo.`))return;
+  if(isCustomProfile(id)){
+    state.customAnalysts=(state.customAnalysts||[]).filter(a=>a.id!==id);
+    await saveConfig('custom_analysts',JSON.stringify(state.customAnalysts));
+  }else{
+    if(!state.deletedBaseAnalysts)state.deletedBaseAnalysts=[];
+    if(!state.deletedBaseAnalysts.includes(id))state.deletedBaseAnalysts.push(id);
+    await saveConfig('deleted_base_analysts',JSON.stringify(state.deletedBaseAnalysts));
+  }
+  rebuildAnalysts();
+  renderProfilesPanel();renderLogin();renderSetup();renderOverview();
+  toast('Perfil eliminado ✓');
+}
+async function restoreBaseAnalyst(id){
+  if(!currentUser||(!currentUser.isAdmin&&!currentUser.isManager))return;
+  state.deletedBaseAnalysts=(state.deletedBaseAnalysts||[]).filter(a=>a!==id);
+  await saveConfig('deleted_base_analysts',JSON.stringify(state.deletedBaseAnalysts));
+  rebuildAnalysts();
+  renderProfilesPanel();renderLogin();renderSetup();renderOverview();
+  toast('Perfil restaurado ✓');
+}
+
+function selectScope(scope){
+  _newTaskScope=scope;
+  updateScopePills();
+  document.getElementById('analyst-selector').style.display=scope==='personal'?'block':'none';
+}
+function updateScopePills(){
+  document.querySelectorAll('.scope-pill').forEach(p=>{
+    p.className='scope-pill'+(p.dataset.scope===_newTaskScope?' sel-'+_newTaskScope:'');
+  });
+  const info={global:'Aplicará a todos los programadores en el checklist.',personal:'Aplicará solo a los programadores que selecciones.',permanent:'Se mantendrá en futuros periodos de rol para todos.'};
+  document.getElementById('scope-info-text').textContent=info[_newTaskScope]||'';
+}
+function toggleAnalystPill(el,id){
+  if(_newTaskAnalysts.includes(id)){
+    _newTaskAnalysts=_newTaskAnalysts.filter(x=>x!==id);
+    el.className='analyst-pill';el.style.background='';el.style.color='';
+  } else {
+    _newTaskAnalysts.push(id);
+    const an=analystById(id);
+    el.className='analyst-pill sel';el.style.background=an.color;el.style.color='#fff';
+  }
+}
+async function saveNewTask(){
+  const name=document.getElementById('new-task-name').value.trim();
+  if(!name){toast('Escribe el nombre de la tarea');return;}
+  if(_newTaskScope==='personal'&&_newTaskAnalysts.length===0){toast('Selecciona al menos un programador');return;}
+  const tipo=document.getElementById('tpl-tipo').value;
+  const etapa=document.getElementById('new-task-etapa').value;
+  const newTask={id:'ct_'+Date.now(),name,etapa,scope:_newTaskScope,analysts:_newTaskScope==='personal'?[..._newTaskAnalysts]:[],createdBy:currentUser.id,createdAt:nowStr(),deleted:false};
+  if(!state.customTasks[tipo])state.customTasks[tipo]=[];
+  state.customTasks[tipo].push(newTask);
+  // Persist to Supabase
+  await _sb.from('custom_tasks').insert({id:newTask.id,tipo,etapa,name,scope:_newTaskScope,analysts:JSON.stringify(newTask.analysts),created_by:currentUser.id,created_at:newTask.createdAt,deleted:false});
+  closeAddTaskModal();renderTemplateEditor();
+  const analystNames=_newTaskScope==='personal'?_newTaskAnalysts.map(id=>analystById(id)?.short||id).join(', '):'todos';
+  toast(`Tarea agregada (${_newTaskScope}) → ${analystNames} ✓`);
+}
+
+/* ════════════════════════════════════════
+   REPORT + EXCEL
+════════════════════════════════════════ */
+function renderReport(){
+  const fc=document.getElementById('rpt-country').value,ft=document.getElementById('rpt-tipo').value;
+  const fs=document.getElementById('rpt-status').value,fa=document.getElementById('rpt-analyst').value;
+  let rows=allChecksFlat();
+  if(fc)rows=rows.filter(r=>r.country===fc);
+  if(ft)rows=rows.filter(r=>r.tipo===ft);
+  if(fs)rows=rows.filter(r=>r.status===fs);
+  if(fa){const an=analystById(fa);if(an)rows=rows.filter(r=>r.analyst===an.name);}
+  const statusLabel={done:'✓ Completado',warn:'⚠ Advertencia',na:'N/A',pending:'Pendiente'};
+  const statusClass={done:'status-done-cell',warn:'status-warn-cell',na:'status-na-cell',pending:'status-pending-cell'};
+  document.getElementById('report-table-wrap').innerHTML=`<table>
+    <thead><tr><th>País</th><th>Tipo</th><th>Etapa</th><th>Tarea</th><th>Estado</th><th>Fecha y hora</th><th>Programador</th><th>Nota</th><th>Resolución</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td>${FLAGS[r.country]||''} ${r.country}</td><td>${r.tipo}</td>
+      <td style="font-size:11px;color:var(--text2)">${r.etapa}</td><td>${r.task}</td>
+      <td class="${statusClass[r.status]||''}">${statusLabel[r.status]||r.status}</td>
+      <td style="font-size:11px;white-space:nowrap">${r.datetime||'—'}</td><td>${r.analyst}</td>
+      <td style="font-size:11px;color:var(--text2);max-width:180px">${r.note||'—'}</td>
+      <td class="resolved-cell">${r.resolvedAt?'✓ '+r.resolvedAt+(r.resolvedBy?' por '+r.resolvedBy:''):'—'}</td>
+    </tr>`).join('')}</tbody></table>`;
+  document.getElementById('report-count').textContent=`${rows.length} registros mostrados`;
+}
+function downloadExcel(){
+  const fc=document.getElementById('rpt-country').value,ft=document.getElementById('rpt-tipo').value;
+  const fs=document.getElementById('rpt-status').value,fa=document.getElementById('rpt-analyst').value;
+  let rows=allChecksFlat();
+  if(fc)rows=rows.filter(r=>r.country===fc);if(ft)rows=rows.filter(r=>r.tipo===ft);
+  if(fs)rows=rows.filter(r=>r.status===fs);if(fa){const an=analystById(fa);if(an)rows=rows.filter(r=>r.analyst===an.name);}
+  const statusLabel={done:'Completado',warn:'Advertencia',na:'N/A',pending:'Pendiente'};
+  const wsData=[['País','Tipo','Etapa','Tarea','Estado','Fecha y Hora Registro','Programador','Nota / Advertencia','Fecha Resolución','Resuelto por']].concat(rows.map(r=>[r.country,r.tipo,r.etapa,r.task,statusLabel[r.status]||r.status,r.datetime||'',r.analyst,r.note||'',r.resolvedAt||'',r.resolvedBy||'']));
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols']=[{wch:12},{wch:8},{wch:30},{wch:50},{wch:14},{wch:18},{wch:22},{wch:40},{wch:18},{wch:18}];
+  XLSX.utils.book_append_sheet(wb,ws,'Registro de Tareas');
+  const sumData=[['RESUMEN POR PROGRAMADOR'],[''],['Programador','País','Tipo','% Avance','Completadas','Total']];
+  for(const an of ANALYSTS)for(const c of COUNTRIES)for(const t of TIPOS){
+    const a=getAssignment(c,t);
+    if(a.analyst===an.id){const d=doneTasksFor(c,t,an.id),tot=totalTasksFor(t,an.id);sumData.push([an.name,c,t,tot?Math.round(d/tot*100)+'%':'0%',d,tot]);}
+  }
+  const ws2=XLSX.utils.aoa_to_sheet(sumData);
+  ws2['!cols']=[{wch:22},{wch:12},{wch:8},{wch:10},{wch:14},{wch:8}];
+  XLSX.utils.book_append_sheet(wb,ws2,'Resumen Programadores');
+  // Custom tasks sheet
+  const customData=[['Tipo','Etapa','Tarea','Alcance','Programadores','Creado por','Fecha creación','Estado']];
+  for(const t of TIPOS)for(const ct of (state.customTasks[t]||[])){
+    const createdAn=analystById(ct.createdBy);
+    const analystNames=ct.analysts.map(id=>analystById(id)?.name||id).join(', ');
+    customData.push([t,ct.etapa,ct.name,ct.scope,analystNames,createdAn?createdAn.name:'',ct.createdAt||'',ct.deleted?'Eliminada':'Activa']);
+  }
+  const ws3=XLSX.utils.aoa_to_sheet(customData);
+  ws3['!cols']=[{wch:8},{wch:30},{wch:50},{wch:12},{wch:40},{wch:20},{wch:18},{wch:10}];
+  XLSX.utils.book_append_sheet(wb,ws3,'Tareas Personalizadas');
+  const now=new Date();
+  XLSX.writeFile(wb,`Rol_Vuelo_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}.xlsx`);
+  toast('Descargando Excel ✓');
+}
+
+/* ════════════════════════════════════════
+   SETUP
+════════════════════════════════════════ */
+function renderSetup(){
+  if(!currentUser||(!currentUser.isAdmin&&!currentUser.isManager))return;
+  // Re-sync from localStorage to ensure UI shows persisted data
+  try{const saved=localStorage.getItem('rol_vuelo_v5');if(saved){const parsed=JSON.parse(saved);if(parsed.assignments)state.assignments=parsed.assignments;}}catch(e){}
+  console.log('[Setup] state.assignments:', JSON.stringify(state.assignments));
+  if(state.processName){
+    const el=document.getElementById('process-name-input');
+    if(el)el.value=state.processName;
+  }
+  if(state.deadline)document.getElementById('dl-input').value=state.deadline;
+  document.getElementById('assign-form').innerHTML=COUNTRIES.map(c=>TIPOS.map(t=>{
+    const a=getAssignment(c,t);
+    const pCode=PAISES_CODES[c]||c;
+    return `<div class="assignment-row">
+      <div class="assign-country">${FLAGS[c]} <span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:99px;background:var(--blue-bg);color:var(--blue);margin:0 5px">${pCode}</span>${c} — <span style="color:${t==='Mando'?'#2f7de0':'#18a76b'};font-weight:700">${t}</span></div>
+      <div><div class="form-label">Programador</div>
+        <select class="form-select" onchange="updateAssign('${c}','${t}','analyst',this.value)">
+          <option value="">— seleccionar —</option>
+          ${ANALYSTS.filter(an=>!an.isViewOnly).map(an=>`<option value="${an.id}"${a.analyst===an.id?' selected':''}>${an.name}</option>`).join('')}
+        </select></div>
+    </div>`;
+  }).join('')).join('');
+}
+function updateProcessDisplay(){
+  const name=state.processName||'';
+  // Topbar small label
+  const el=document.getElementById('process-name-display');
+  if(el)el.innerHTML=name?`— <span style="color:var(--blue)">${name}</span>`:'';
+  // Overview big title
+  const procTitle=document.getElementById('overview-process-title');
+  if(procTitle)procTitle.textContent=name||'Sin nombre de proceso';
+  if(name)saveConfig('processName',name);
+}
+async function resetAllChecks(){
+  if(!confirm('¿Estás seguro? Se borrarán TODOS los registros del checklist para iniciar un proceso nuevo. Esta acción no se puede deshacer.'))return;
+  state.checks={};
+  await _sb.from('checks').delete().neq('id','__none__');
+  renderOverview();renderChecklist();
+  toast('App formateada. Nuevo proceso listo ✓');
+}
+function updateAssign(c,t,field,val){
+  const k=c+'|'+t;
+  if(!state.assignments[k])state.assignments[k]={};
+  state.assignments[k][field]=val;
+  saveAssignment(k,state.assignments[k]);
+}
+async function clearAssignments(){
+  if(!confirm('¿Limpiar todas las asignaciones? Los programadores quedarán sin país asignado.'))return;
+  state.assignments={};
+  await _sb.from('assignments').delete().neq('key','__none__');
+  renderSetup();renderOverview();initChecklist();toast('Asignaciones limpiadas ✓');
+}
+function saveSetup(){
+  state.deadline=document.getElementById('dl-input').value||'';
+  saveConfig('deadline',state.deadline);
+  saveConfig('processName',state.processName);
+  toast('Configuración guardada ✓');
+  renderOverview();initChecklist();renderSetup();
+}
+
+/* ════════════════════════════════════════
+   UTILS
+════════════════════════════════════════ */
+let _tt=null;
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');if(_tt)clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('show'),2500);}
+
+function showLoadingScreen(){const el=document.getElementById('loading-screen');if(el)el.style.display='flex';}
+function hideLoadingScreen(){const el=document.getElementById('loading-screen');if(el)el.style.display='none';}
+
+// ═══ INIT ═══
+(async()=>{
+  showLoadingScreen();
+  await loadState();
+  hideLoadingScreen();
+  renderLogin();
+  // Real-time: refresh overview when any check changes in Supabase
+  _sb.channel('checks-changes')
+    .on('postgres_changes',{event:'*',schema:'public',table:'checks'},payload=>{
+      const r=payload.new||payload.old;
+      if(r&&r.id){
+        if(payload.eventType==='DELETE'){delete state.checks[r.id];}
+        else{state.checks[r.id]={status:r.status||'pending',datetime:r.datetime||'',note:r.note||'',analystId:r.analyst_id||'',resolvedAt:r.resolved_at||'',resolvedBy:r.resolved_by||''};}
+        // Refresh UI if logged in
+        if(currentUser){renderOverview();const sec=document.getElementById('sec-checklist');if(sec.classList.contains('active'))renderChecklist();}
+      }
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'assignments'},async()=>{
+      const {data}=await _sb.from('assignments').select('*');
+      if(data){state.assignments={};data.forEach(r=>{state.assignments[r.key]={analyst:r.analyst||'',base:r.base||'',subflota:r.subflota||''};});}
+      if(currentUser){renderOverview();const sec=document.getElementById('sec-checklist');if(sec.classList.contains('active'))renderChecklist();}
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'config'},payload=>{
+      const r=payload.new;if(!r)return;
+      if(r.key==='deadline')state.deadline=r.value||'';
+      if(r.key==='processName'){state.processName=r.value||'';updateProcessDisplay();}
+      if(r.key&&r.key.startsWith('pwd_')){if(!state.passwords)state.passwords={};state.passwords[r.key.slice(4)]=r.value||'';}
+      if(r.key==='custom_analysts'){try{state.customAnalysts=JSON.parse(r.value||'[]');}catch(e){state.customAnalysts=[];}rebuildAnalysts();if(currentUser&&(currentUser.isAdmin||currentUser.isManager))renderProfilesPanel();}
+      if(r.key==='deleted_base_analysts'){try{state.deletedBaseAnalysts=JSON.parse(r.value||'[]');}catch(e){state.deletedBaseAnalysts=[];}rebuildAnalysts();if(currentUser&&(currentUser.isAdmin||currentUser.isManager))renderProfilesPanel();}
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'estimates'},payload=>{
+      const r=payload.new||payload.old;if(!r)return;
+      if(payload.eventType==='DELETE'){delete state.estimates[r.key];}
+      else{state.estimates[r.key]={date:r.date||'',analystId:r.analyst_id||'',updatedAt:r.updated_at||''};}
+      if(currentUser){renderOverview();const sec=document.getElementById('sec-checklist');if(sec.classList.contains('active'))renderChecklist();}
+    })
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'estimate_history'},payload=>{
+      const r=payload.new;if(!r)return;
+      if(!state.estimateHistory)state.estimateHistory=[];
+      if(!state.estimateHistory.some(h=>h.id===r.id))state.estimateHistory.unshift({id:r.id,country:r.country,tipo:r.tipo,date:r.date,analystId:r.analyst_id,createdAt:r.created_at});
+      if(currentUser){const sec=document.getElementById('sec-checklist');if(sec.classList.contains('active'))renderChecklist();}
+    })
+    .subscribe();
+})();
+</script>
+</body>
+</html>
